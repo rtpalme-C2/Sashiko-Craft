@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sashiko Supplies & Fabric Inventory</title>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -20,7 +20,7 @@
     --green:      #1a5c38;
     --green-bg:   #d0e8d8;
   }
-  body { font-family:'DM Sans',sans-serif; background:var(--ivory); color:var(--ink); min-height:100vh; }
+  body { font-family:'Plus Jakarta Sans',sans-serif; background:var(--ivory); color:var(--ink); min-height:100vh; }
 
   /* ── Header ── */
   header { background:var(--mauve); padding:36px 40px 28px; position:relative; overflow:hidden; }
@@ -46,7 +46,7 @@
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
   .sync-actions { display:flex; gap:8px; }
   .btn-sync {
-    font-family:'DM Sans',sans-serif; font-size:.7rem; font-weight:500;
+    font-family:'Plus Jakarta Sans',sans-serif; font-size:.7rem; font-weight:500;
     letter-spacing:.06em; text-transform:uppercase;
     padding:5px 14px; border-radius:20px; border:1.5px solid var(--blush);
     background:white; color:var(--rose-light); cursor:pointer; transition:all .18s;
@@ -76,13 +76,13 @@
   .search-wrap input {
     width:100%; padding:7px 12px 7px 34px;
     border:1.5px solid var(--blush); border-radius:20px;
-    font-family:'DM Sans',sans-serif; font-size:.78rem; color:var(--ink);
+    font-family:'Plus Jakarta Sans',sans-serif; font-size:.78rem; color:var(--ink);
     outline:none; transition:border-color .18s; background:var(--ivory);
   }
   .search-wrap input:focus { border-color:var(--rose-light); background:white; }
   .search-wrap svg { position:absolute; left:11px; top:50%; transform:translateY(-50%); color:#aaa; pointer-events:none; }
   .btn-add-item {
-    font-family:'DM Sans',sans-serif; font-size:.74rem; font-weight:500;
+    font-family:'Plus Jakarta Sans',sans-serif; font-size:.74rem; font-weight:500;
     letter-spacing:.06em; text-transform:uppercase;
     padding:7px 18px; border-radius:20px; border:none;
     background:var(--mauve); color:white; cursor:pointer; transition:background .18s; white-space:nowrap;
@@ -104,7 +104,7 @@
   .filter-row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
   .filter-label { font-size:.63rem; text-transform:uppercase; letter-spacing:.09em; color:#ccc; margin-right:2px; flex-shrink:0; }
   .filter-btn {
-    font-family:'DM Sans',sans-serif; font-size:.71rem; font-weight:500;
+    font-family:'Plus Jakarta Sans',sans-serif; font-size:.71rem; font-weight:500;
     letter-spacing:.06em; text-transform:uppercase;
     padding:5px 13px; border-radius:20px; border:1.5px solid var(--blush);
     background:white; color:var(--rose-light); cursor:pointer; transition:all .18s;
@@ -135,7 +135,7 @@
   .card-qty { font-size:.71rem; color:#aaa; }
   .card-actions { display:flex; gap:6px; }
   .btn-card {
-    font-family:'DM Sans',sans-serif; font-size:.62rem; font-weight:500;
+    font-family:'Plus Jakarta Sans',sans-serif; font-size:.62rem; font-weight:500;
     letter-spacing:.05em; text-transform:uppercase;
     padding:3px 10px; border-radius:10px; border:1.5px solid var(--blush);
     background:white; color:var(--rose-light); cursor:pointer; transition:all .15s;
@@ -170,7 +170,7 @@
   .field label { display:block; font-size:.65rem; text-transform:uppercase; letter-spacing:.12em; color:#aaa; margin-bottom:.3rem; }
   .field input, .field select, .field textarea {
     width:100%; padding:7px 10px; border:1.5px solid var(--blush); border-radius:6px;
-    font-family:'DM Sans',sans-serif; font-size:.82rem; color:var(--ink);
+    font-family:'Plus Jakarta Sans',sans-serif; font-size:.82rem; color:var(--ink);
     background:white; outline:none; transition:border-color .18s;
   }
   .field input:focus, .field select:focus, .field textarea:focus { border-color:var(--rose-light); }
@@ -180,13 +180,13 @@
   .modal-actions { display:flex; gap:.75rem; margin-top:1.25rem; }
   .btn-cancel {
     flex:1; padding:8px; border:1.5px solid var(--blush); border-radius:6px;
-    background:white; font-family:'DM Sans',sans-serif; font-size:.74rem;
+    background:white; font-family:'Plus Jakarta Sans',sans-serif; font-size:.74rem;
     letter-spacing:.08em; text-transform:uppercase; cursor:pointer; color:#aaa; transition:all .15s;
   }
   .btn-cancel:hover { border-color:var(--rose-light); color:var(--rose); }
   .btn-save {
     flex:2; padding:8px; border:none; border-radius:6px; background:var(--mauve); color:white;
-    font-family:'DM Sans',sans-serif; font-size:.74rem; font-weight:500;
+    font-family:'Plus Jakarta Sans',sans-serif; font-size:.74rem; font-weight:500;
     letter-spacing:.08em; text-transform:uppercase; cursor:pointer; transition:background .15s;
   }
   .btn-save:hover { background:var(--rose); }
