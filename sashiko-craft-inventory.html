@@ -67,6 +67,7 @@ header p { font-size:.65rem; color:rgba(245,242,236,.35); margin-top:8px; letter
 
 /* Top controls */
 .top-bar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; padding:14px 40px; background:rgba(200,220,232,.2); border-bottom:1px solid rgba(74,122,155,.15); }
+.top-bar-right { display:flex; align-items:center; gap:8px; }
 .search-wrap { position:relative; flex:1; min-width:180px; max-width:340px; }
 .search-wrap input { width:100%; padding:7px 12px 7px 34px; border:1px solid rgba(74,122,155,.3); border-radius:20px; font-family:'Plus Jakarta Sans',sans-serif; font-size:.76rem; color:var(--ai-indigo); background:white; outline:none; transition:border-color .18s; }
 .search-wrap input::placeholder { color:rgba(26,40,64,.35); }
@@ -205,8 +206,10 @@ header p { font-size:.65rem; color:rgba(245,242,236,.35); margin-top:8px; letter
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
     <input type="text" id="search" placeholder="Search inventory&hellip;" oninput="renderGrid(); renderSummary();">
   </div>
-  <button class="btn-add-item" onclick="openModal()">+ Add Item</button>
-  <button class="btn-help" onclick="openHelp()" title="Help">?</button>
+  <div class="top-bar-right">
+    <button class="btn-add-item" onclick="openModal()">+ Add Item</button>
+    <button class="btn-help" onclick="openHelp()" title="Help">?</button>
+  </div>
 </div>
 
 <div class="summary" id="summary"></div>
