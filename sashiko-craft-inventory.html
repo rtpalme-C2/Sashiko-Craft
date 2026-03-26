@@ -74,6 +74,8 @@ header p { font-size:.65rem; color:rgba(245,242,236,.35); margin-top:8px; letter
 .search-wrap svg { position:absolute; left:11px; top:50%; transform:translateY(-50%); color:rgba(26,40,64,.3); pointer-events:none; }
 .btn-add-item { font-family:'Plus Jakarta Sans',sans-serif; font-size:.72rem; font-weight:500; letter-spacing:.07em; text-transform:uppercase; padding:7px 18px; border-radius:20px; border:1px solid rgba(138,174,196,.3); background:var(--steel-blue); color:var(--washi); cursor:pointer; transition:all .18s; white-space:nowrap; }
 .btn-add-item:hover { background:#5a8aab; }
+.btn-help { font-family:'Plus Jakarta Sans',sans-serif; font-size:.78rem; font-weight:600; width:32px; height:32px; border-radius:50%; border:1.5px solid rgba(74,122,155,.35); background:white; color:var(--steel-blue); cursor:pointer; transition:all .18s; flex-shrink:0; display:flex; align-items:center; justify-content:center; line-height:1; }
+.btn-help:hover { border-color:var(--steel-blue); background:var(--sky-thread); color:var(--deep-ai); }
 
 /* Summary */
 .summary { display:flex; gap:12px; padding:20px 40px 4px; flex-wrap:wrap; }
@@ -204,6 +206,7 @@ header p { font-size:.65rem; color:rgba(245,242,236,.35); margin-top:8px; letter
     <input type="text" id="search" placeholder="Search inventory&hellip;" oninput="renderGrid(); renderSummary();">
   </div>
   <button class="btn-add-item" onclick="openModal()">+ Add Item</button>
+  <button class="btn-help" onclick="openHelp()" title="Help">?</button>
 </div>
 
 <div class="summary" id="summary"></div>
@@ -262,7 +265,86 @@ header p { font-size:.65rem; color:rgba(245,242,236,.35); margin-top:8px; letter
   </div>
 </div>
 
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+<!-- Help modal -->
+<div class="modal-backdrop" id="help-modal" onclick="backdropCloseHelp(event)">
+  <div class="modal" style="max-width:560px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem">
+      <h2 style="margin-bottom:0">How to update your inventory</h2>
+      <button onclick="closeHelp()" style="background:none;border:none;cursor:pointer;color:rgba(245,242,236,.4);font-size:1.2rem;line-height:1;padding:4px 6px;border-radius:4px" onmouseover="this.style.color='var(--sky-thread)'" onmouseout="this.style.color='rgba(245,242,236,.4)'">&times;</button>
+    </div>
+
+    <!-- Decision guide -->
+    <div style="font-size:.63rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--steel-blue);margin-bottom:10px">Which method should I use?</div>
+    <div style="background:rgba(26,40,64,.3);border-radius:8px;overflow:hidden;margin-bottom:1.25rem;border:1px solid rgba(138,174,196,.15)">
+      <div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid rgba(138,174,196,.12)">
+        <div style="padding:10px 14px;font-size:.67rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--thread-blue);border-right:1px solid rgba(138,174,196,.12)">Use the app directly</div>
+        <div style="padding:10px 14px;font-size:.67rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--thread-blue)">Ask Claude to update the file</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr">
+        <div style="padding:12px 14px;font-size:.76rem;line-height:1.7;color:rgba(245,242,236,.65);border-right:1px solid rgba(138,174,196,.12)">
+          Marking an item delivered<br>
+          Updating an arrival date<br>
+          Adding a single new item<br>
+          Fixing a typo<br>
+          Any quick edit
+        </div>
+        <div style="padding:12px 14px;font-size:.76rem;line-height:1.7;color:rgba(245,242,236,.65)">
+          Adding many items at once<br>
+          Uploading an invoice or order<br>
+          Design or layout changes<br>
+          Adding new features<br>
+          Bulk status updates
+        </div>
+      </div>
+    </div>
+
+    <!-- Important note about Drive vs seed data -->
+    <div style="background:rgba(74,122,155,.12);border:1px solid rgba(74,122,155,.25);border-left:3px solid var(--steel-blue);border-radius:6px;padding:11px 14px;margin-bottom:1.25rem;font-size:.78rem;line-height:1.65;color:rgba(245,242,236,.7)">
+      <strong style="color:var(--sky-thread);display:block;margin-bottom:3px">App edits vs. file updates</strong>
+      Changes you make directly in the app save to Google Drive automatically — no GitHub upload needed. When Claude updates the HTML file, you need to upload it to GitHub <em>and</em> tap Reset local data so the app reloads the new seed data.
+    </div>
+
+    <!-- Quick reference table -->
+    <div style="font-size:.63rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--steel-blue);margin-bottom:10px">Quick reference</div>
+    <table style="width:100%;border-collapse:collapse;font-size:.76rem">
+      <tr style="border-bottom:1px solid rgba(138,174,196,.15)">
+        <td style="padding:7px 10px;color:var(--sky-thread);font-weight:500;width:45%">Mark an item delivered</td>
+        <td style="padding:7px 10px;color:rgba(245,242,236,.6);line-height:1.5">Edit button on the card → change Status → Save</td>
+      </tr>
+      <tr style="border-bottom:1px solid rgba(138,174,196,.15)">
+        <td style="padding:7px 10px;color:var(--sky-thread);font-weight:500">Add a new item</td>
+        <td style="padding:7px 10px;color:rgba(245,242,236,.6);line-height:1.5">+ Add Item → fill in fields → Save</td>
+      </tr>
+      <tr style="border-bottom:1px solid rgba(138,174,196,.15)">
+        <td style="padding:7px 10px;color:var(--sky-thread);font-weight:500">Add items from an invoice</td>
+        <td style="padding:7px 10px;color:rgba(245,242,236,.6);line-height:1.5">Upload to Claude → download updated file → upload to GitHub → Reset local data</td>
+      </tr>
+      <tr style="border-bottom:1px solid rgba(138,174,196,.15)">
+        <td style="padding:7px 10px;color:var(--sky-thread);font-weight:500">Find something</td>
+        <td style="padding:7px 10px;color:rgba(245,242,236,.6);line-height:1.5">Search bar or category/status filters</td>
+      </tr>
+      <tr style="border-bottom:1px solid rgba(138,174,196,.15)">
+        <td style="padding:7px 10px;color:var(--sky-thread);font-weight:500">Fix a mistake</td>
+        <td style="padding:7px 10px;color:rgba(245,242,236,.6);line-height:1.5">Edit button on the card → make changes → Save</td>
+      </tr>
+      <tr>
+        <td style="padding:7px 10px;color:var(--sky-thread);font-weight:500">Remove an item</td>
+        <td style="padding:7px 10px;color:rgba(245,242,236,.6);line-height:1.5">Delete button on the card → confirm</td>
+      </tr>
+    </table>
+
+    <div style="margin-top:1.25rem;text-align:right">
+      <button onclick="closeHelp()" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:.72rem;font-weight:500;letter-spacing:.07em;text-transform:uppercase;padding:7px 20px;border-radius:20px;border:none;background:var(--steel-blue);color:var(--washi);cursor:pointer">Got it</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function openHelp()  { document.getElementById('help-modal').classList.add('open'); }
+function closeHelp() { document.getElementById('help-modal').classList.remove('open'); }
+function backdropCloseHelp(e) { if (e.target === document.getElementById('help-modal')) closeHelp(); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHelp(); });
+</script>
 <script src="https://apis.google.com/js/api.js" async defer onload="gapiLoaded()"></script>
 <script>
 const CONFIG = {
@@ -384,16 +466,16 @@ const SEED=[
   {cat:'Fabric',name:'Kona Cotton \u2014 Snow',detail:'Fat quarter \u00b7 Pantone 2026 Powdered Pastels',maker:'Robert Kaufman',supplier:'Sewfinity',qty:'1 FQ',status:'delivered',swatch:'#EDE8E0',role:'Stash'},
   {cat:'Fabric',name:'Essex Yarn Dyed \u2014 Nautical',detail:'Linen-cotton blend \u00b7 dark navy',maker:'Robert Kaufman',supplier:'Sewfinity',qty:'2 FQ',status:'delivered',swatch:'#4A5868',role:'Stash'},
   {cat:'Thread',name:'201 \u2014 White',detail:'Daruma thick',maker:'Daruma',supplier:'Amazon',qty:'1 card',status:'delivered',swatch:'#F8F8F8',role:'Stash'},
-  {cat:'Thread',name:'202 \u2014 Off White',detail:'Daruma thick \u00b7 3 extra cards from Snuggly Monkey',maker:'Daruma',supplier:'Amazon + Snuggly Monkey',qty:'4 cards',status:'enroute',swatch:'#F5F0E8',role:"Crane embroidery \u00b7 Sophie's Quilt"},
+  {cat:'Thread',name:'202 \u2014 Off White',detail:'Daruma thick \u00b7 3 extra cards from Snuggly Monkey',maker:'Daruma',supplier:'Amazon + Snuggly Monkey',qty:'4 cards',status:'enroute',note:'Arriving Mar 30',swatch:'#F5F0E8',role:"Crane embroidery \u00b7 Sophie's Quilt"},
   {cat:'Thread',name:'203 \u2014 Lemon',detail:'Daruma thick',maker:'Daruma',supplier:'Amazon',qty:'1 card',status:'delivered',swatch:'#F5E870',role:'Stash'},
   {cat:'Thread',name:'204 \u2014 Sunflower',detail:'Daruma thick',maker:'Daruma',supplier:'Amazon',qty:'1 card',status:'delivered',swatch:'#F0C030',role:'Stash'},
   {cat:'Thread',name:'205 \u2014 Peacock',detail:'Daruma thick',maker:'Daruma',supplier:'Amazon',qty:'1 card',status:'delivered',swatch:'#30A898',role:'Stash'},
   {cat:'Thread',name:'206 \u2014 Mint',detail:'Daruma thick',maker:'Daruma',supplier:'Amazon',qty:'1 card',status:'delivered',swatch:'#A8DCC8',role:'Stash'},
   {cat:'Thread',name:'207 \u2014 Emerald',detail:'Daruma thick',maker:'Daruma',supplier:'Amazon',qty:'1 card',status:'delivered',swatch:'#2E8B57',role:'Stash'},
   {cat:'Thread',name:'208 \u2014 Bamboo',detail:'Daruma thick',maker:'Daruma',supplier:'Amazon',qty:'1 card',status:'delivered',swatch:'#788060',role:'Stash'},
-  {cat:'Thread',name:'209 \u2014 Cherry Blossom',detail:'Daruma thick \u00b7 3 extra cards from Snuggly Monkey',maker:'Daruma',supplier:'Amazon + Snuggly Monkey',qty:'4 cards',status:'enroute',swatch:'#F0C4B8',role:"Sakura + Shippo \u00b7 Sophie's Quilt"},
+  {cat:'Thread',name:'209 \u2014 Cherry Blossom',detail:'Daruma thick \u00b7 3 extra cards from Snuggly Monkey',maker:'Daruma',supplier:'Amazon + Snuggly Monkey',qty:'4 cards',status:'enroute',note:'Arriving Mar 30',swatch:'#F0C4B8',role:"Sakura + Shippo \u00b7 Sophie's Quilt"},
   {cat:'Thread',name:'210 \u2014 Wisteria',detail:'Daruma thick',maker:'Daruma',supplier:'Amazon',qty:'1 card',status:'delivered',swatch:'#C8A0D0',role:'Stash'},
-  {cat:'Thread',name:'211 \u2014 Rose Pink',detail:'Daruma thick \u00b7 8 extra cards from Snuggly Monkey',maker:'Daruma',supplier:'Amazon + Snuggly Monkey',qty:'9 cards',status:'enroute',swatch:'#D08898',role:"Kagome + Asanoha \u00b7 Sophie's Quilt"},
+  {cat:'Thread',name:'211 \u2014 Rose Pink',detail:'Daruma thick \u00b7 8 extra cards from Snuggly Monkey',maker:'Daruma',supplier:'Amazon + Snuggly Monkey',qty:'9 cards',status:'enroute',note:'Arriving Mar 30',swatch:'#D08898',role:"Kagome + Asanoha \u00b7 Sophie's Quilt"},
   {cat:'Thread',name:'212 \u2014 Vermillion',detail:'Daruma thick',maker:'Daruma',supplier:'Amazon',qty:'1 card',status:'delivered',swatch:'#E84030',role:'Stash'},
   {cat:'Thread',name:'213 \u2014 Deep Red',detail:'Daruma thick',maker:'Daruma',supplier:'Amazon',qty:'1 card',status:'delivered',swatch:'#A01820',role:'Stash'},
   {cat:'Thread',name:'214 \u2014 Carrot',detail:'Daruma thick',maker:'Daruma',supplier:'Amazon',qty:'1 card',status:'delivered',swatch:'#E87030',role:'Stash'},
