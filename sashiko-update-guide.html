@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sashiko Craft — How to Update Your Inventory</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --ai-indigo:   #1A2840;
+    --deep-ai:     #2E4A68;
+    --steel-blue:  #4A7A9B;
+    --thread-blue: #8AAEC4;
+    --sky-thread:  #C8DCE8;
+    --washi:       #F5F2EC;
+    --ink:         #1A2840;
+  }
+  body { font-family:'Plus Jakarta Sans',sans-serif; background:var(--washi); color:var(--ink); max-width:740px; margin:0 auto; padding:0 0 80px; }
+
+  /* ── Header ── */
+  header { background:var(--ai-indigo); padding:36px 40px 30px; position:relative; overflow:hidden; }
+  header::before {
+    content:''; position:absolute; inset:0; pointer-events:none;
+    background-image:
+      repeating-linear-gradient(0deg,transparent,transparent 23px,rgba(138,174,196,.04) 23px,rgba(138,174,196,.04) 24px),
+      repeating-linear-gradient(90deg,transparent,transparent 23px,rgba(138,174,196,.04) 23px,rgba(138,174,196,.04) 24px);
+  }
+  header::after { content:''; position:absolute; bottom:0; left:0; right:0; height:1.5px; background:linear-gradient(90deg,transparent,var(--steel-blue),transparent); }
+  .header-curves { position:absolute; inset:0; pointer-events:none; }
+  .header-inner { position:relative; display:flex; align-items:center; gap:20px; }
+  .header-eyebrow { font-size:.62rem; letter-spacing:.24em; text-transform:uppercase; color:var(--steel-blue); margin-bottom:8px; font-weight:500; }
+  header h1 { font-family:'Plus Jakarta Sans',sans-serif; font-size:2.2rem; font-weight:300; color:var(--washi); letter-spacing:.04em; line-height:1; }
+  header h1 em { font-style:italic; color:var(--sky-thread); }
+  header p { font-size:.65rem; color:rgba(245,242,236,.35); margin-top:8px; letter-spacing:.16em; text-transform:uppercase; font-weight:300; }
+
+  /* ── Sections ── */
+  .section { padding:28px 40px 0; }
+  .section-title {
+    font-size:.63rem; font-weight:500; letter-spacing:.18em; text-transform:uppercase;
+    color:var(--steel-blue); border-bottom:1px solid var(--sky-thread); padding-bottom:8px; margin-bottom:18px;
+  }
+
+  /* ── Cards ── */
+  .card {
+    background:white; border:1px solid rgba(74,122,155,.2); border-radius:10px;
+    padding:18px 22px; margin-bottom:14px;
+    box-shadow:0 2px 8px rgba(74,122,155,.07);
+  }
+  .card h3 {
+    font-size:.68rem; font-weight:500; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--deep-ai); margin-bottom:14px;
+  }
+  .card p { font-size:.83rem; line-height:1.7; color:rgba(26,40,64,.7); margin-bottom:8px; }
+  .card p:last-child { margin-bottom:0; }
+  .card ol, .card ul { padding-left:18px; font-size:.83rem; line-height:1.9; color:rgba(26,40,64,.7); }
+  .card li { margin-bottom:2px; }
+
+  /* ── Steps ── */
+  .step-row { display:flex; gap:14px; align-items:flex-start; margin-bottom:10px; }
+  .step-num {
+    width:24px; height:24px; border-radius:50%; background:var(--deep-ai); color:var(--washi);
+    font-size:.72rem; font-weight:500;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px;
+  }
+  .step-text { font-size:.83rem; line-height:1.7; color:rgba(26,40,64,.7); flex:1; }
+  .step-text strong { color:var(--ai-indigo); }
+
+  code {
+    font-family:monospace; font-size:.78rem;
+    background:var(--sky-thread); background:rgba(200,220,232,.35);
+    padding:2px 7px; border-radius:4px; color:var(--deep-ai);
+  }
+
+  /* ── Callouts ── */
+  .callout {
+    border-radius:8px; padding:11px 15px; margin:10px 0; font-size:.8rem; line-height:1.6;
+  }
+  .callout.info  { background:rgba(200,220,232,.25); border-left:3px solid var(--thread-blue); color:var(--deep-ai); }
+  .callout.good  { background:rgba(74,122,155,.1);   border-left:3px solid var(--steel-blue);  color:var(--ai-indigo); }
+
+  /* ── Status badges ── */
+  .status-row { display:flex; gap:10px; flex-wrap:wrap; margin-top:8px; }
+  .sbadge { font-size:.72rem; font-weight:500; letter-spacing:.04em; padding:4px 12px; border-radius:10px; }
+  .s-delivered { background:rgba(74,122,155,.12); color:#2E5878; }
+  .s-enroute   { background:rgba(46,74,104,.12);  color:#1A3858; }
+  .s-pending   { background:rgba(26,40,64,.08);   color:rgba(26,40,64,.55); }
+
+  /* ── URL box ── */
+  .url-box {
+    background:var(--ai-indigo); color:var(--sky-thread); border-radius:8px;
+    padding:12px 16px; margin:10px 0; font-family:monospace; font-size:.82rem;
+  }
+
+  /* ── Tables ── */
+  .field-table { width:100%; border-collapse:collapse; font-size:.8rem; margin-top:8px; }
+  .field-table th { background:rgba(200,220,232,.3); color:var(--deep-ai); font-weight:500; text-align:left; padding:7px 10px; border:1px solid rgba(74,122,155,.2); }
+  .field-table td { padding:7px 10px; border:1px solid rgba(74,122,155,.15); color:rgba(26,40,64,.7); vertical-align:top; line-height:1.5; }
+  .field-table tr:nth-child(even) td { background:rgba(245,242,236,.6); }
+
+  footer { text-align:center; padding:40px; font-size:.72rem; color:rgba(26,40,64,.3); }
+
+  @media print {
+    body { max-width:100%; }
+    header { -webkit-print-color-adjust:exact; print-color-adjust:exact; background:var(--ai-indigo) !important; }
+    .card { break-inside:avoid; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <svg class="header-curves" viewBox="0 0 740 120" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M-10 80 C70 40 170 70 290 30 C370 8 410 45 500 38 C600 30 680 55 750 25" stroke="rgba(138,174,196,.10)" stroke-width="1.8" fill="none"/>
+    <path d="M-10 55 C90 25 210 60 330 22 C430 0 540 35 700 18 C720 14 740 18 750 20" stroke="rgba(138,174,196,.06)" stroke-width="1.2" fill="none"/>
+  </svg>
+  <div class="header-inner">
+    <svg width="72" height="54" viewBox="0 0 56 42" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+      <line x1="2"  y1="10" x2="14" y2="10" stroke="#F5F2EC" stroke-width="2.2" stroke-linecap="round" opacity=".92"/>
+      <line x1="20" y1="10" x2="32" y2="10" stroke="#F5F2EC" stroke-width="2.2" stroke-linecap="round" opacity=".92"/>
+      <line x1="38" y1="10" x2="50" y2="10" stroke="#F5F2EC" stroke-width="2.2" stroke-linecap="round" opacity=".92"/>
+      <line x1="14" y1="10" x2="20" y2="10" stroke="#F5F2EC" stroke-width=".6" stroke-linecap="round" opacity=".28"/>
+      <line x1="32" y1="10" x2="38" y2="10" stroke="#F5F2EC" stroke-width=".6" stroke-linecap="round" opacity=".28"/>
+      <line x1="8"  y1="21" x2="20" y2="21" stroke="#F5F2EC" stroke-width="2.2" stroke-linecap="round" opacity=".92"/>
+      <line x1="26" y1="21" x2="38" y2="21" stroke="#F5F2EC" stroke-width="2.2" stroke-linecap="round" opacity=".92"/>
+      <line x1="20" y1="21" x2="26" y2="21" stroke="#F5F2EC" stroke-width=".6" stroke-linecap="round" opacity=".28"/>
+      <line x1="2"  y1="32" x2="14" y2="32" stroke="#F5F2EC" stroke-width="2.2" stroke-linecap="round" opacity=".92"/>
+      <line x1="20" y1="32" x2="32" y2="32" stroke="#F5F2EC" stroke-width="2.2" stroke-linecap="round" opacity=".92"/>
+      <line x1="38" y1="32" x2="50" y2="32" stroke="#F5F2EC" stroke-width="2.2" stroke-linecap="round" opacity=".92"/>
+      <line x1="14" y1="32" x2="20" y2="32" stroke="#F5F2EC" stroke-width=".6" stroke-linecap="round" opacity=".28"/>
+      <line x1="32" y1="32" x2="38" y2="32" stroke="#F5F2EC" stroke-width=".6" stroke-linecap="round" opacity=".28"/>
+      <line x1="14" y1="10" x2="20" y2="21" stroke="#F5F2EC" stroke-width=".6" stroke-linecap="round" opacity=".2"/>
+      <line x1="32" y1="10" x2="26" y2="21" stroke="#F5F2EC" stroke-width=".6" stroke-linecap="round" opacity=".2"/>
+      <line x1="20" y1="21" x2="14" y2="32" stroke="#F5F2EC" stroke-width=".6" stroke-linecap="round" opacity=".2"/>
+      <line x1="38" y1="21" x2="32" y2="32" stroke="#F5F2EC" stroke-width=".6" stroke-linecap="round" opacity=".2"/>
+    </svg>
+    <div>
+      <div class="header-eyebrow">Chapter 2 · Sewing</div>
+      <h1>Sashiko <em>Craft</em></h1>
+      <p>Supplies · Fabric · Inventory</p>
+    </div>
+  </div>
+</header>
+
+<!-- ── YOUR APP URL ── -->
+<div class="section">
+  <div class="section-title">Your App</div>
+  <div class="card">
+    <p>Open your inventory from any device — phone, tablet, or computer — at:</p>
+    <div class="url-box">https://rtpalme-c2.github.io/Sashiko-Craft/sashiko-craft-inventory.html</div>
+    <p>No Terminal, no local server needed. Just open the URL in Chrome, sign into Google Drive when prompted, and you're in.</p>
+    <div class="callout good">Bookmark this URL on your phone so it's always one tap away.</div>
+  </div>
+</div>
+
+<!-- ── SCENARIO: JUST BOUGHT SOMETHING ── -->
+<div class="section">
+  <div class="section-title">Scenario: You just bought new products</div>
+
+  <div class="card">
+    <h3>Step 1 — Open the app</h3>
+    <div class="step-row"><div class="step-num">1</div><div class="step-text">Open the URL above in Chrome on any device.</div></div>
+    <div class="step-row"><div class="step-num">2</div><div class="step-text">Click <strong>Connect Google Drive</strong> and sign in if prompted.</div></div>
+    <div class="step-row"><div class="step-num">3</div><div class="step-text">Wait for the dot to turn <strong>green</strong> — you're connected and your current data is loaded.</div></div>
+  </div>
+
+  <div class="card">
+    <h3>Step 2 — Add each new item</h3>
+    <div class="step-row"><div class="step-num">1</div><div class="step-text">Click <strong>+ Add Item</strong> in the top right.</div></div>
+    <div class="step-row"><div class="step-num">2</div><div class="step-text">Fill in the fields. At minimum, enter the <strong>Name</strong>, <strong>Category</strong>, <strong>Qty</strong>, and <strong>Status</strong>.</div></div>
+    <div class="step-row"><div class="step-num">3</div><div class="step-text">Click <strong>Save Item</strong>. The item appears immediately and syncs to Google Drive within a few seconds.</div></div>
+    <div class="step-row"><div class="step-num">4</div><div class="step-text">Repeat for each new product.</div></div>
+
+    <div style="margin-top:14px">
+      <div style="font-size:.72rem;font-weight:500;color:var(--deep-ai);margin-bottom:6px;letter-spacing:.1em;text-transform:uppercase;">Which status to use</div>
+      <div class="status-row">
+        <span class="sbadge s-pending">Not Yet Ordered</span>
+        <span class="sbadge s-enroute">En Route</span>
+        <span class="sbadge s-delivered">Delivered</span>
+      </div>
+      <div style="font-size:.78rem;color:rgba(26,40,64,.5);margin-top:8px;line-height:1.7;">
+        Just placed the order → <strong>En Route</strong><br>
+        Planning to buy but haven't yet → <strong>Not Yet Ordered</strong><br>
+        Already in hand → <strong>Delivered</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Example — ordering fabric</h3>
+    <p>You just ordered 2 yards of Kona Cotton in Sage from Sewfinity.</p>
+    <table class="field-table">
+      <tr><th>Field</th><th>What to enter</th></tr>
+      <tr><td>Name</td><td>Kona Cotton — Sage</td></tr>
+      <tr><td>Category</td><td>Fabric</td></tr>
+      <tr><td>Detail</td><td>K001-1337 · 2 yard cut</td></tr>
+      <tr><td>Maker</td><td>Robert Kaufman</td></tr>
+      <tr><td>Supplier</td><td>Sewfinity</td></tr>
+      <tr><td>Qty</td><td>2 yd</td></tr>
+      <tr><td>Status</td><td>En Route</td></tr>
+      <tr><td>Notes</td><td>Ordered Mar 22, arriving ~Mar 28</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ── SCENARIO: ORDER ARRIVES ── -->
+<div class="section">
+  <div class="section-title">Scenario: Your order arrives</div>
+  <div class="card">
+    <div class="step-row"><div class="step-num">1</div><div class="step-text">Open the app and connect Google Drive.</div></div>
+    <div class="step-row"><div class="step-num">2</div><div class="step-text">Click the <strong>En Route</strong> status filter to see only items in transit.</div></div>
+    <div class="step-row"><div class="step-num">3</div><div class="step-text">Find the item that arrived. Click <strong>Edit</strong>.</div></div>
+    <div class="step-row"><div class="step-num">4</div><div class="step-text">Change Status to <strong>Delivered</strong>. Add a delivery date to Notes if you like, e.g. <em>Delivered Mar 28</em>.</div></div>
+    <div class="step-row"><div class="step-num">5</div><div class="step-text">Click <strong>Save Item</strong>. Done — syncs automatically.</div></div>
+  </div>
+</div>
+
+<!-- ── SCENARIO: OUT AND ABOUT ── -->
+<div class="section">
+  <div class="section-title">Scenario: You're out shopping and want to check your inventory</div>
+  <div class="card">
+    <p>Open the URL on your phone in Chrome. Connect Google Drive. Your full inventory loads — you can search, filter by category, and check what you already have before buying duplicates.</p>
+    <div class="callout info">The app works on any browser on any device. No app to install, no account to create beyond Google.</div>
+  </div>
+</div>
+
+<!-- ── SCENARIO: UPDATING VIA CLAUDE ── -->
+<div class="section">
+  <div class="section-title">Scenario: You have an invoice and want Claude to update the inventory</div>
+  <div class="card">
+    <p>If you receive an order confirmation or invoice and want help adding multiple items at once:</p>
+    <div class="step-row"><div class="step-num">1</div><div class="step-text">Come to <strong>claude.ai</strong> in this project.</div></div>
+    <div class="step-row"><div class="step-num">2</div><div class="step-text">Upload the invoice or paste the order details and say <em>"Add these to my Sashiko Craft inventory."</em></div></div>
+    <div class="step-row"><div class="step-num">3</div><div class="step-text">Claude will update the <code>sashiko-craft-inventory.html</code> file and give you a download link.</div></div>
+    <div class="step-row"><div class="step-num">4</div><div class="step-text">Upload the updated file to GitHub to replace the old one:<br>
+      Go to <strong>github.com/rtpalme-C2/Sashiko-Craft</strong> → click the file → click the pencil/upload icon → upload the new file → click <strong>Commit changes</strong>.</div></div>
+    <div class="step-row"><div class="step-num">5</div><div class="step-text">Wait about 1 minute for GitHub Pages to update, then open the app — your new items will be there.</div></div>
+    <div class="callout info">This is the only scenario that requires a GitHub upload step. For individual adds and edits, just use the app directly.</div>
+  </div>
+</div>
+
+<!-- ── QUICK REFERENCE ── -->
+<div class="section">
+  <div class="section-title">Quick Reference</div>
+  <div class="card">
+    <table class="field-table">
+      <tr><th>Task</th><th>How</th></tr>
+      <tr><td>Open the app</td><td>Go to the URL above in Chrome — any device</td></tr>
+      <tr><td>Add a new item</td><td>+ Add Item button → fill in fields → Save</td></tr>
+      <tr><td>Mark as delivered</td><td>Edit → change Status to Delivered → Save</td></tr>
+      <tr><td>Find something</td><td>Search bar or category/status filter buttons</td></tr>
+      <tr><td>Fix a mistake</td><td>Edit button on the card → make changes → Save</td></tr>
+      <tr><td>Remove an item</td><td>Delete button on the card → confirm</td></tr>
+      <tr><td>Add via invoice</td><td>Upload to Claude → download updated file → upload to GitHub</td></tr>
+    </table>
+  </div>
+</div>
+
+<footer>Sashiko Craft — personal use</footer>
+</body>
+</html>
