@@ -510,17 +510,18 @@ async function syncFromGitHub() {
     const text = await res.text();
     if (text && text.trim().startsWith('{')) {
       const parsed = JSON.parse(text);
-      if (parsed && parsed._version === DATA_VERSION && Array.isArray(parsed.data) && parsed.data.length > 0) {
+      const hasData = parsed && parsed._version === DATA_VERSION &&
+        Array.isArray(parsed.data) && parsed.data.length > 0;
+      if (hasData) {
         supplies = parsed.data;
         persist();
         renderGrid(); renderSummary();
         setSyncStatus('connected', 'Synced from GitHub · ' + new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));
-        // Also fetch SHA so we can write back
         await fetchSHA();
         return;
       }
     }
-    // File exists but is empty or in old format — push local data up
+    // GitHub has no data — push local data up
     setSyncStatus('saving', 'Pushing local data to GitHub…');
     await saveToGitHub();
   } catch(e) {
