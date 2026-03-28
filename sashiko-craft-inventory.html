@@ -551,8 +551,8 @@ async function saveToGitHub() {
   setSyncStatus('saving', 'Saving to GitHub…');
   pendingSave = true;
   try {
-    // We need a fresh SHA if we don't have one
-    if (!getSHA()) await fetchSHA();
+    // Always fetch a fresh SHA before saving to avoid conflicts
+    await fetchSHA();
 
     const payload = { _version: DATA_VERSION, data: supplies };
     const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
