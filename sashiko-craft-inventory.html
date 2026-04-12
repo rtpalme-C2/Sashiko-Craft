@@ -188,13 +188,12 @@
   .card-name { font-size:.92rem; font-weight:500; line-height:1.3; color:var(--ai-indigo); margin-bottom:3px; }
   .card-detail { font-size:.71rem; color:#999; line-height:1.45; }
   .card-detail strong { color:#666; font-weight:500; }
-  .card-meta { display:flex; align-items:center; justify-content:space-between; padding:6px 14px 8px; border-top:1px solid rgba(200,220,232,.5); gap:8px; }
-  .card-qty { font-size:.66rem; color:#bbb; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .card-badges { display:flex; align-items:center; gap:4px; flex-shrink:0; }
+  .card-meta { display:flex; align-items:center; justify-content:flex-end; padding:5px 12px 7px; border-top:1px solid rgba(200,220,232,.5); gap:4px; }
   .badge { font-size:.58rem; font-weight:600; letter-spacing:.05em; text-transform:uppercase; padding:2px 7px; border-radius:6px; white-space:nowrap; }
-  .badge-delivered { background:#dff0e6; color:#1a5c38; }
-  .badge-enroute   { background:#daeaf6; color:#1a3c60; }
-  .badge-pending   { background:#eaedf0; color:#4a5568; }
+  .badge-in-stock  { background:#dff0e6; color:#1a5c38; }
+  .badge-on-order  { background:#daeaf6; color:#1a3c60; }
+  .badge-to-order  { background:#eaedf0; color:#4a5568; }
+  .badge-depleted  { background:#f0e8e8; color:#7a3030; }
   .badge-reorder-yes { background:#e6f4ec; color:#1a6040; }
   .badge-reorder-no  { background:#f7eaea; color:#7a2424; }
   .card-menu-btn {
@@ -441,9 +440,10 @@
       <div class="field">
         <label>Status</label>
         <select id="f-status">
-          <option value="delivered">Delivered</option>
-          <option value="enroute">En Route</option>
-          <option value="pending">Not Yet Ordered</option>
+          <option value="in-stock">In Stock</option>
+          <option value="on-order">On Order</option>
+          <option value="to-order">To Order</option>
+          <option value="depleted">Depleted</option>
         </select>
       </div>
     </div>
@@ -493,7 +493,7 @@ const GH_RAW_URL  = `https://raw.githubusercontent.com/${GH_OWNER}/${GH_REPO}/ma
 const GH_API_URL  = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_FILE}`;
 const LS_PAT      = 'sashiko_gh_pat';
 const LS_SHA      = 'sashiko_gh_sha';
-const LS_DATA_KEY = 'sashiko-v2';
+const LS_DATA_KEY = 'sashiko-v3';
 
 // ── Data version contract ─────────────────────────────────────────────────
 // DATA_VERSION guards against loading stale/incompatible localStorage data.
@@ -507,7 +507,7 @@ const LS_DATA_KEY = 'sashiko-v2';
 //     before the `if (!supplies)` block below.
 //   • Minor additions (new optional fields) do NOT require a version bump —
 //     just use optional chaining (s?.newField) when reading.
-const DATA_VERSION = 2;
+const DATA_VERSION = 3;
 
 let saveTimer   = null;
 let pendingSave = false;
@@ -673,85 +673,85 @@ const CAT_COLORS = {
   Stencils:'#506878', Notions:'#3A5870', Tools:'#2A4A68', Reference:'#5A6878',
 };
 const statusMap = {
-  delivered: { label:'Delivered',       cls:'badge-delivered' },
-  enroute:   { label:'En Route',        cls:'badge-enroute'   },
-  pending:   { label:'Not Yet Ordered', cls:'badge-pending'   },
+  'in-stock':  { label:'In Stock',  cls:'badge-in-stock'  },
+  'on-order':  { label:'On Order',  cls:'badge-on-order'  },
+  'to-order':  { label:'To Order',  cls:'badge-to-order'  },
+  'depleted':  { label:'Depleted',  cls:'badge-depleted'  },
 };
 const CATS     = ['All','Fabric','Thread','Needles','Stencils','Notions','Tools','Reference'];
-const STATUSES = ['All Items','Delivered','En Route','Not Yet Ordered'];
 
 const SEED = [
-  { cat:'Fabric', name:'Kona Cotton \u2014 Rose',              detail:'K001-1310 \u00b7 Embroidered squares',     maker:'Robert Kaufman', supplier:'Sewfinity',              qty:'2 yd',   status:'delivered', swatch:'#C08080', role:"Sophie's Quilt \u2014 embroidered blocks" },
-  { cat:'Fabric', name:'Kona Cotton \u2014 Ballet Slipper',    detail:'K001-861 \u00b7 Plain squares (Fabric B)',  maker:'Robert Kaufman', supplier:'Missouri Star Quilt Co.',qty:'2 yd',   status:'delivered', swatch:'#E8C8CC', role:"Sophie's Quilt \u2014 plain checkerboard", note:'Washed & ironed' },
-  { cat:'Fabric', name:'Kona Cotton \u2014 Ivory',             detail:'K001-1181 \u00b7 Plain squares (Fabric C)', maker:'Robert Kaufman', supplier:'Sewfinity',              qty:'2 yd',   status:'delivered', swatch:'#EDE8DF', role:"Sophie's Quilt \u2014 plain checkerboard" },
-  { cat:'Fabric', name:'Kona Cotton \u2014 Foxglove',          detail:'K001-956 \u00b7 Backing',                   maker:'Robert Kaufman', supplier:'Missouri Star Quilt Co.',qty:'2 yd',   status:'delivered', swatch:'#C4909A', role:"Sophie's Quilt \u2014 backing", note:'Washed & ironed' },
-  { cat:'Fabric', name:'Liberty Tana Lawn \u2014 Paper White', detail:'Solid \u00b7 Binding',                      maker:'Liberty Fabrics', supplier:'DuckaDilly',           qty:'1 yd',   status:'delivered', swatch:'#F8F4EE', role:"Sophie's Quilt \u2014 binding", note:'Delivered Mar 22' },
-  { cat:'Fabric', name:'Kona Cotton \u2014 Ballet Slipper',    detail:'Fat quarter \u00b7 Pantone 2026 Powdered Pastels', maker:'Robert Kaufman', supplier:'Sewfinity', qty:'1 FQ', status:'delivered', swatch:'#E8C8CC', role:'Stash' },
-  { cat:'Fabric', name:'Kona Cotton \u2014 Cloud',             detail:'Fat quarter \u00b7 Pantone 2026 Powdered Pastels', maker:'Robert Kaufman', supplier:'Sewfinity', qty:'1 FQ', status:'delivered', swatch:'#B8C8DC', role:'Stash' },
-  { cat:'Fabric', name:'Kona Cotton \u2014 Desert Green',      detail:'Fat quarter \u00b7 Pantone 2026 Powdered Pastels', maker:'Robert Kaufman', supplier:'Sewfinity', qty:'1 FQ', status:'delivered', swatch:'#A8C8A0', role:'Stash' },
-  { cat:'Fabric', name:'Kona Cotton \u2014 Dove',              detail:'Fat quarter \u00b7 Pantone 2026 Powdered Pastels', maker:'Robert Kaufman', supplier:'Sewfinity', qty:'1 FQ', status:'delivered', swatch:'#C8C8C0', role:'Stash' },
-  { cat:'Fabric', name:'Kona Cotton \u2014 Haze',              detail:'Fat quarter \u00b7 Pantone 2026 Powdered Pastels', maker:'Robert Kaufman', supplier:'Sewfinity', qty:'1 FQ', status:'delivered', swatch:'#B8C8B0', role:'Stash' },
-  { cat:'Fabric', name:'Kona Cotton \u2014 Lingerie',          detail:'Fat quarter \u00b7 Pantone 2026 Powdered Pastels', maker:'Robert Kaufman', supplier:'Sewfinity', qty:'1 FQ', status:'delivered', swatch:'#E8C8A8', role:'Stash' },
-  { cat:'Fabric', name:'Kona Cotton \u2014 Meringue',          detail:'Fat quarter \u00b7 Pantone 2026 Powdered Pastels', maker:'Robert Kaufman', supplier:'Sewfinity', qty:'1 FQ', status:'delivered', swatch:'#F0E8A0', role:'Stash' },
-  { cat:'Fabric', name:'Kona Cotton \u2014 Orchid',            detail:'Fat quarter \u00b7 Pantone 2026 Powdered Pastels', maker:'Robert Kaufman', supplier:'Sewfinity', qty:'1 FQ', status:'delivered', swatch:'#C0A0D0', role:'Stash' },
-  { cat:'Fabric', name:'Kona Cotton \u2014 Quicksilver',       detail:'Fat quarter \u00b7 Pantone 2026 Powdered Pastels', maker:'Robert Kaufman', supplier:'Sewfinity', qty:'1 FQ', status:'delivered', swatch:'#B8B8C0', role:'Stash' },
-  { cat:'Fabric', name:'Kona Cotton \u2014 Shell',             detail:'Fat quarter \u00b7 Pantone 2026 Powdered Pastels', maker:'Robert Kaufman', supplier:'Sewfinity', qty:'1 FQ', status:'delivered', swatch:'#F0C0B0', role:'Stash' },
-  { cat:'Fabric', name:'Kona Cotton \u2014 Sky',               detail:'Fat quarter \u00b7 Pantone 2026 Powdered Pastels', maker:'Robert Kaufman', supplier:'Sewfinity', qty:'1 FQ', status:'delivered', swatch:'#B8D0E8', role:'Stash' },
-  { cat:'Fabric', name:'Kona Cotton \u2014 Snow',              detail:'Fat quarter \u00b7 Pantone 2026 Powdered Pastels', maker:'Robert Kaufman', supplier:'Sewfinity', qty:'1 FQ', status:'delivered', swatch:'#EDE8E0', role:'Stash' },
-  { cat:'Fabric', name:'Essex Yarn Dyed \u2014 Nautical',      detail:'Linen-cotton blend \u00b7 dark navy', maker:'Robert Kaufman', supplier:'Sewfinity', qty:'2 FQ', status:'delivered', swatch:'#4A5868', role:'Stash' },
-  { cat:'Thread', name:'201 \u2014 White',           detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'delivered', swatch:'#F8F8F8', role:'Stash' },
-  { cat:'Thread', name:'202 \u2014 Off White',        detail:'Daruma thick \u00b7 3 extra cards from Snuggly Monkey', maker:'Daruma', supplier:'Amazon + Snuggly Monkey', qty:'4 cards', status:'enroute', swatch:'#F5F0E8', role:"Crane embroidery \u00b7 Sophie's Quilt" },
-  { cat:'Thread', name:'203 \u2014 Lemon',            detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'delivered', swatch:'#F5E870', role:'Stash' },
-  { cat:'Thread', name:'204 \u2014 Sunflower',        detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'delivered', swatch:'#F0C030', role:'Stash' },
-  { cat:'Thread', name:'205 \u2014 Peacock',          detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'delivered', swatch:'#30A898', role:'Stash' },
-  { cat:'Thread', name:'206 \u2014 Mint',             detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'delivered', swatch:'#A8DCC8', role:'Stash' },
-  { cat:'Thread', name:'207 \u2014 Emerald',          detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'delivered', swatch:'#2E8B57', role:'Stash' },
-  { cat:'Thread', name:'208 \u2014 Bamboo',           detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'delivered', swatch:'#788060', role:'Stash' },
-  { cat:'Thread', name:'209 \u2014 Cherry Blossom',   detail:'Daruma thick \u00b7 3 extra cards from Snuggly Monkey', maker:'Daruma', supplier:'Amazon + Snuggly Monkey', qty:'4 cards', status:'enroute', swatch:'#F0C4B8', role:"Sakura + Shippo \u00b7 Sophie's Quilt" },
-  { cat:'Thread', name:'210 \u2014 Wisteria',         detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'delivered', swatch:'#C8A0D0', role:'Stash' },
-  { cat:'Thread', name:'211 \u2014 Rose Pink',        detail:'Daruma thick \u00b7 8 extra cards from Snuggly Monkey', maker:'Daruma', supplier:'Amazon + Snuggly Monkey', qty:'9 cards', status:'enroute', swatch:'#D08898', role:"Kagome + Asanoha \u00b7 Sophie's Quilt" },
-  { cat:'Thread', name:'212 \u2014 Vermillion',       detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'delivered', swatch:'#E84030', role:'Stash' },
-  { cat:'Thread', name:'213 \u2014 Deep Red',         detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'delivered', swatch:'#A01820', role:'Stash' },
-  { cat:'Thread', name:'214 \u2014 Carrot',           detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'delivered', swatch:'#E87030', role:'Stash' },
-  { cat:'Thread', name:'215 \u2014 Navy Blue',        detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'delivered', swatch:'#1A2A5A', role:'Stash' },
-  { cat:'Thread', name:'216 \u2014 Deep Indigo',      detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'delivered', swatch:'#282050', role:'Stash' },
-  { cat:'Thread', name:'217 \u2014 Gray',             detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'delivered', swatch:'#A8A8A8', role:'Stash' },
-  { cat:'Thread', name:'218 \u2014 Brown',            detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'delivered', swatch:'#7A5038', role:'Stash' },
-  { cat:'Thread', name:'219 \u2014 Black',            detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'delivered', swatch:'#202020', role:'Stash' },
-  { cat:'Thread', name:'220 \u2014 Brown Gold',       detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'delivered', swatch:'#B88830', role:'Stash' },
-  { cat:'Thread', name:'221 \u2014 Madder',           detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'delivered', swatch:'#C04840', role:'Stash' },
-  { cat:'Thread', name:'222 \u2014 Japanese Apricot', detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'delivered', swatch:'#E8A878', role:'Stash' },
-  { cat:'Thread', name:'223 \u2014 Grape',            detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'delivered', swatch:'#785090', role:'Stash' },
-  { cat:'Thread', name:'224 \u2014 Blue',             detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'delivered', swatch:'#4060C0', role:'Stash' },
-  { cat:'Thread', name:'225 \u2014 Lapis Lazuli',     detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'delivered', swatch:'#2848A0', role:'Stash' },
-  { cat:'Thread', name:'226 \u2014 Water Blue',       detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'delivered', swatch:'#88B8D8', role:'Stash' },
-  { cat:'Thread', name:'227 \u2014 Spring Green',     detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'delivered', swatch:'#78C870', role:'Stash' },
-  { cat:'Thread', name:'228 \u2014 Uguisu',           detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'delivered', swatch:'#909858', role:'Stash' },
-  { cat:'Thread', name:'229 \u2014 Mouse',            detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'delivered', swatch:'#888078', role:'Stash' },
-  { cat:'Thread', name:'Kinari \u2014 Natural White', detail:'Daruma thin \u00b7 included with set', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'delivered', swatch:'#F0EAD8', role:'Stash' },
-  { cat:'Thread', name:'Hidamari \u2014 Tulip',           detail:'Cosmo sashiko \u00b7 deep red',  maker:'Cosmo/Lecien', supplier:'Sewfinity', qty:'1 spool', status:'delivered', swatch:'#C03040', role:'Stash' },
-  { cat:'Thread', name:'Hidamari \u2014 Cherry Blossom',  detail:'Cosmo sashiko \u00b7 soft pink', maker:'Cosmo/Lecien', supplier:'Sewfinity', qty:'1 spool', status:'delivered', swatch:'#ECA8A8', role:'Stash' },
-  { cat:'Thread', name:'Hidamari \u2014 Snow White',      detail:'Cosmo sashiko \u00b7 white',     maker:'Cosmo/Lecien', supplier:'Sewfinity', qty:'1 spool', status:'delivered', swatch:'#F8F5F0', role:'Stash' },
-  { cat:'Thread', name:'Neutral Cream Piecing Thread', detail:'Machine assembly of quilt top', maker:'TBD (Gutermann or Coats & Clark)', supplier:'TBD', qty:'2 spools', status:'pending', role:'Machine piecing' },
-  { cat:'Needles',   name:'Tulip Long Sashiko Needles',          detail:'Assorted \u00b7 tube of 6',          maker:'Tulip',    supplier:'Amazon', qty:'1 tube',  status:'enroute',   note:'Arriving Mar 23' },
-  { cat:'Stencils',  name:'FREEBLOSS Stencil Kit \u2014 Geometric 1', detail:'12-piece \u00b7 Kagome, Asanoha', maker:'FREEBLOSS', supplier:'Amazon', qty:'1 kit', status:'delivered', note:'Delivered Mar 14' },
-  { cat:'Stencils',  name:'FREEBLOSS Stencil Kit \u2014 Geometric 2', detail:'12-piece \u00b7 Shippo patterns', maker:'FREEBLOSS', supplier:'Amazon', qty:'1 kit', status:'delivered', note:'Delivered Mar 14' },
-  { cat:'Stencils',  name:'FREEBLOSS Stencil Kit \u2014 Flowers',     detail:'12-piece \u00b7 Sakura/floral',   maker:'FREEBLOSS', supplier:'Amazon', qty:'1 kit', status:'delivered', note:'Delivered Mar 14' },
-  { cat:'Stencils',  name:'Crane Stencil',                             detail:'Individual \u00b7 center square', maker:'\u2014',    supplier:'\u2014', qty:'1',     status:'delivered', note:'In hand' },
-  { cat:'Notions',   name:'Clover Mini Wonder Clips',                  detail:'50 pcs \u00b7 fabric clips',      maker:'Clover',   supplier:'Amazon', qty:'1 pack', status:'delivered', note:'Delivered Mar 14' },
-  { cat:'Notions',   name:'Clover White Chaco Liner Pen',              detail:'Stencil marking pen',             maker:'Clover',   supplier:'Amazon', qty:'1',      status:'enroute',   note:'Arriving Mar 31' },
-  { cat:'Notions',   name:'Clover Chaco Liner Refill \u2014 White',    detail:'Refill for Chaco Liner',          maker:'Clover',   supplier:'Amazon', qty:'1',      status:'enroute',   note:'Arriving Mar 26' },
-  { cat:'Notions',   name:'Clover Protect & Grip Thimble \u2014 Medium', detail:'Hand-stitching thimble',        maker:'Clover',   supplier:'Amazon', qty:'1',      status:'enroute',   note:'Arriving Apr 1' },
-  { cat:'Notions',   name:'Clover Protect & Grip Thimble \u2014 Large',  detail:'Hand-stitching thimble',        maker:'Clover',   supplier:'Amazon', qty:'1',      status:'delivered', note:'Delivered Mar 22' },
-  { cat:'Notions',   name:'Wooden Needle Case',                        detail:'2-piece set',                     maker:'\u2014',   supplier:'Amazon', qty:'1 set',  status:'enroute',   note:'Arriving Mar 23' },
-  { cat:'Notions',   name:'Japanese-style Pin Cushion',                detail:'Tomato-style cushion',            maker:'\u2014',   supplier:'Amazon', qty:'1',      status:'enroute',   note:'Arriving Mar 27' },
-  { cat:'Tools',     name:'Fiskars Crafts Essentials 5-piece',         detail:'Rotary cutter, mat & rulers',     maker:'Fiskars',  supplier:'Amazon', qty:'1 set',  status:'delivered', note:'Delivered Mar 14' },
-  { cat:'Tools',     name:'Fiskars Sewing Essentials 6-piece',         detail:'Scissors, seam ripper, etc.',     maker:'Fiskars',  supplier:'Amazon', qty:'1 set',  status:'delivered', note:'Delivered Mar 13' },
-  { cat:'Tools',     name:'Fiskars Self-Healing Cutting Mat 18\u201d\u00d724\u201d', detail:'Lilac \u00b7 extra cutting surface', maker:'Fiskars', supplier:'Amazon', qty:'1', status:'enroute', note:'Arriving Mar 23' },
-  { cat:'Tools',     name:'Fiskars Sewing Ruler 6\u201d\u00d724\u201d', detail:'Long quilting ruler',            maker:'Fiskars',  supplier:'Amazon', qty:'1',      status:'enroute',   note:'Arriving Mar 24' },
-  { cat:'Tools',     name:'Gingher 8\u201d Dressmaker Shears',         detail:'Right-hand fabric scissors',      maker:'Gingher',  supplier:'Amazon', qty:'1',      status:'enroute',   note:'Arriving Mar 27\u2013Apr 2' },
-  { cat:'Tools',     name:'Sewing Machine',                            detail:'Brother HC1850 or CS7000X',       maker:'Brother',  supplier:'TBD',    qty:'1',      status:'pending',   role:'Machine piecing + assembly' },
-  { cat:'Reference', name:'Kona Printed Color Chart 24\u201d Panel',   detail:'Full Kona palette reference',     maker:'Robert Kaufman', supplier:'Amazon', qty:'1 panel', status:'delivered', note:'Delivered Mar 18' },
+  { cat:'Fabric', name:'Kona Cotton \u2014 Rose',              detail:'K001-1310 \u00b7 Embroidered squares',     maker:'Robert Kaufman', supplier:'Sewfinity',              qty:'2 yd',   status:'in-stock', swatch:'#C08080', role:"Sophie's Quilt \u2014 embroidered blocks" },
+  { cat:'Fabric', name:'Kona Cotton \u2014 Ballet Slipper',    detail:'K001-861 \u00b7 Plain squares (Fabric B)',  maker:'Robert Kaufman', supplier:'Missouri Star Quilt Co.',qty:'2 yd',   status:'in-stock', swatch:'#E8C8CC', role:"Sophie's Quilt \u2014 plain checkerboard", note:'Washed & ironed' },
+  { cat:'Fabric', name:'Kona Cotton \u2014 Ivory',             detail:'K001-1181 \u00b7 Plain squares (Fabric C)', maker:'Robert Kaufman', supplier:'Sewfinity',              qty:'2 yd',   status:'in-stock', swatch:'#EDE8DF', role:"Sophie's Quilt \u2014 plain checkerboard" },
+  { cat:'Fabric', name:'Kona Cotton \u2014 Foxglove',          detail:'K001-956 \u00b7 Backing',                   maker:'Robert Kaufman', supplier:'Missouri Star Quilt Co.',qty:'2 yd',   status:'in-stock', swatch:'#C4909A', role:"Sophie's Quilt \u2014 backing", note:'Washed & ironed' },
+  { cat:'Fabric', name:'Liberty Tana Lawn \u2014 Paper White', detail:'Solid \u00b7 Binding',                      maker:'Liberty Fabrics', supplier:'DuckaDilly',           qty:'1 yd',   status:'in-stock', swatch:'#F8F4EE', role:"Sophie's Quilt \u2014 binding", note:'Delivered Mar 22' },
+  { cat:'Fabric', name:'Kona Cotton \u2014 Ballet Slipper',    detail:'Fat quarter \u00b7 Pantone 2026 Powdered Pastels', maker:'Robert Kaufman', supplier:'Sewfinity', qty:'1 FQ', status:'in-stock', swatch:'#E8C8CC', role:'Stash' },
+  { cat:'Fabric', name:'Kona Cotton \u2014 Cloud',             detail:'Fat quarter \u00b7 Pantone 2026 Powdered Pastels', maker:'Robert Kaufman', supplier:'Sewfinity', qty:'1 FQ', status:'in-stock', swatch:'#B8C8DC', role:'Stash' },
+  { cat:'Fabric', name:'Kona Cotton \u2014 Desert Green',      detail:'Fat quarter \u00b7 Pantone 2026 Powdered Pastels', maker:'Robert Kaufman', supplier:'Sewfinity', qty:'1 FQ', status:'in-stock', swatch:'#A8C8A0', role:'Stash' },
+  { cat:'Fabric', name:'Kona Cotton \u2014 Dove',              detail:'Fat quarter \u00b7 Pantone 2026 Powdered Pastels', maker:'Robert Kaufman', supplier:'Sewfinity', qty:'1 FQ', status:'in-stock', swatch:'#C8C8C0', role:'Stash' },
+  { cat:'Fabric', name:'Kona Cotton \u2014 Haze',              detail:'Fat quarter \u00b7 Pantone 2026 Powdered Pastels', maker:'Robert Kaufman', supplier:'Sewfinity', qty:'1 FQ', status:'in-stock', swatch:'#B8C8B0', role:'Stash' },
+  { cat:'Fabric', name:'Kona Cotton \u2014 Lingerie',          detail:'Fat quarter \u00b7 Pantone 2026 Powdered Pastels', maker:'Robert Kaufman', supplier:'Sewfinity', qty:'1 FQ', status:'in-stock', swatch:'#E8C8A8', role:'Stash' },
+  { cat:'Fabric', name:'Kona Cotton \u2014 Meringue',          detail:'Fat quarter \u00b7 Pantone 2026 Powdered Pastels', maker:'Robert Kaufman', supplier:'Sewfinity', qty:'1 FQ', status:'in-stock', swatch:'#F0E8A0', role:'Stash' },
+  { cat:'Fabric', name:'Kona Cotton \u2014 Orchid',            detail:'Fat quarter \u00b7 Pantone 2026 Powdered Pastels', maker:'Robert Kaufman', supplier:'Sewfinity', qty:'1 FQ', status:'in-stock', swatch:'#C0A0D0', role:'Stash' },
+  { cat:'Fabric', name:'Kona Cotton \u2014 Quicksilver',       detail:'Fat quarter \u00b7 Pantone 2026 Powdered Pastels', maker:'Robert Kaufman', supplier:'Sewfinity', qty:'1 FQ', status:'in-stock', swatch:'#B8B8C0', role:'Stash' },
+  { cat:'Fabric', name:'Kona Cotton \u2014 Shell',             detail:'Fat quarter \u00b7 Pantone 2026 Powdered Pastels', maker:'Robert Kaufman', supplier:'Sewfinity', qty:'1 FQ', status:'in-stock', swatch:'#F0C0B0', role:'Stash' },
+  { cat:'Fabric', name:'Kona Cotton \u2014 Sky',               detail:'Fat quarter \u00b7 Pantone 2026 Powdered Pastels', maker:'Robert Kaufman', supplier:'Sewfinity', qty:'1 FQ', status:'in-stock', swatch:'#B8D0E8', role:'Stash' },
+  { cat:'Fabric', name:'Kona Cotton \u2014 Snow',              detail:'Fat quarter \u00b7 Pantone 2026 Powdered Pastels', maker:'Robert Kaufman', supplier:'Sewfinity', qty:'1 FQ', status:'in-stock', swatch:'#EDE8E0', role:'Stash' },
+  { cat:'Fabric', name:'Essex Yarn Dyed \u2014 Nautical',      detail:'Linen-cotton blend \u00b7 dark navy', maker:'Robert Kaufman', supplier:'Sewfinity', qty:'2 FQ', status:'in-stock', swatch:'#4A5868', role:'Stash' },
+  { cat:'Thread', name:'201 \u2014 White',           detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'in-stock', swatch:'#F8F8F8', role:'Stash' },
+  { cat:'Thread', name:'202 \u2014 Off White',        detail:'Daruma thick \u00b7 3 extra cards from Snuggly Monkey', maker:'Daruma', supplier:'Amazon + Snuggly Monkey', qty:'4 cards', status:'on-order', swatch:'#F5F0E8', role:"Crane embroidery \u00b7 Sophie's Quilt" },
+  { cat:'Thread', name:'203 \u2014 Lemon',            detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'in-stock', swatch:'#F5E870', role:'Stash' },
+  { cat:'Thread', name:'204 \u2014 Sunflower',        detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'in-stock', swatch:'#F0C030', role:'Stash' },
+  { cat:'Thread', name:'205 \u2014 Peacock',          detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'in-stock', swatch:'#30A898', role:'Stash' },
+  { cat:'Thread', name:'206 \u2014 Mint',             detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'in-stock', swatch:'#A8DCC8', role:'Stash' },
+  { cat:'Thread', name:'207 \u2014 Emerald',          detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'in-stock', swatch:'#2E8B57', role:'Stash' },
+  { cat:'Thread', name:'208 \u2014 Bamboo',           detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'in-stock', swatch:'#788060', role:'Stash' },
+  { cat:'Thread', name:'209 \u2014 Cherry Blossom',   detail:'Daruma thick \u00b7 3 extra cards from Snuggly Monkey', maker:'Daruma', supplier:'Amazon + Snuggly Monkey', qty:'4 cards', status:'on-order', swatch:'#F0C4B8', role:"Sakura + Shippo \u00b7 Sophie's Quilt" },
+  { cat:'Thread', name:'210 \u2014 Wisteria',         detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'in-stock', swatch:'#C8A0D0', role:'Stash' },
+  { cat:'Thread', name:'211 \u2014 Rose Pink',        detail:'Daruma thick \u00b7 8 extra cards from Snuggly Monkey', maker:'Daruma', supplier:'Amazon + Snuggly Monkey', qty:'9 cards', status:'on-order', swatch:'#D08898', role:"Kagome + Asanoha \u00b7 Sophie's Quilt" },
+  { cat:'Thread', name:'212 \u2014 Vermillion',       detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'in-stock', swatch:'#E84030', role:'Stash' },
+  { cat:'Thread', name:'213 \u2014 Deep Red',         detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'in-stock', swatch:'#A01820', role:'Stash' },
+  { cat:'Thread', name:'214 \u2014 Carrot',           detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'in-stock', swatch:'#E87030', role:'Stash' },
+  { cat:'Thread', name:'215 \u2014 Navy Blue',        detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'in-stock', swatch:'#1A2A5A', role:'Stash' },
+  { cat:'Thread', name:'216 \u2014 Deep Indigo',      detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'in-stock', swatch:'#282050', role:'Stash' },
+  { cat:'Thread', name:'217 \u2014 Gray',             detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'in-stock', swatch:'#A8A8A8', role:'Stash' },
+  { cat:'Thread', name:'218 \u2014 Brown',            detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'in-stock', swatch:'#7A5038', role:'Stash' },
+  { cat:'Thread', name:'219 \u2014 Black',            detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'in-stock', swatch:'#202020', role:'Stash' },
+  { cat:'Thread', name:'220 \u2014 Brown Gold',       detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'in-stock', swatch:'#B88830', role:'Stash' },
+  { cat:'Thread', name:'221 \u2014 Madder',           detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'in-stock', swatch:'#C04840', role:'Stash' },
+  { cat:'Thread', name:'222 \u2014 Japanese Apricot', detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'in-stock', swatch:'#E8A878', role:'Stash' },
+  { cat:'Thread', name:'223 \u2014 Grape',            detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'in-stock', swatch:'#785090', role:'Stash' },
+  { cat:'Thread', name:'224 \u2014 Blue',             detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'in-stock', swatch:'#4060C0', role:'Stash' },
+  { cat:'Thread', name:'225 \u2014 Lapis Lazuli',     detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'in-stock', swatch:'#2848A0', role:'Stash' },
+  { cat:'Thread', name:'226 \u2014 Water Blue',       detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'in-stock', swatch:'#88B8D8', role:'Stash' },
+  { cat:'Thread', name:'227 \u2014 Spring Green',     detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'in-stock', swatch:'#78C870', role:'Stash' },
+  { cat:'Thread', name:'228 \u2014 Uguisu',           detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'in-stock', swatch:'#909858', role:'Stash' },
+  { cat:'Thread', name:'229 \u2014 Mouse',            detail:'Daruma thick', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'in-stock', swatch:'#888078', role:'Stash' },
+  { cat:'Thread', name:'Kinari \u2014 Natural White', detail:'Daruma thin \u00b7 included with set', maker:'Daruma', supplier:'Amazon', qty:'1 card', status:'in-stock', swatch:'#F0EAD8', role:'Stash' },
+  { cat:'Thread', name:'Hidamari \u2014 Tulip',           detail:'Cosmo sashiko \u00b7 deep red',  maker:'Cosmo/Lecien', supplier:'Sewfinity', qty:'1 spool', status:'in-stock', swatch:'#C03040', role:'Stash' },
+  { cat:'Thread', name:'Hidamari \u2014 Cherry Blossom',  detail:'Cosmo sashiko \u00b7 soft pink', maker:'Cosmo/Lecien', supplier:'Sewfinity', qty:'1 spool', status:'in-stock', swatch:'#ECA8A8', role:'Stash' },
+  { cat:'Thread', name:'Hidamari \u2014 Snow White',      detail:'Cosmo sashiko \u00b7 white',     maker:'Cosmo/Lecien', supplier:'Sewfinity', qty:'1 spool', status:'in-stock', swatch:'#F8F5F0', role:'Stash' },
+  { cat:'Thread', name:'Neutral Cream Piecing Thread', detail:'Machine assembly of quilt top', maker:'TBD (Gutermann or Coats & Clark)', supplier:'TBD', qty:'2 spools', status:'to-order', role:'Machine piecing' },
+  { cat:'Needles',   name:'Tulip Long Sashiko Needles',          detail:'Assorted \u00b7 tube of 6',          maker:'Tulip',    supplier:'Amazon', qty:'1 tube',  status:'on-order',   note:'Arriving Mar 23' },
+  { cat:'Stencils',  name:'FREEBLOSS Stencil Kit \u2014 Geometric 1', detail:'12-piece \u00b7 Kagome, Asanoha', maker:'FREEBLOSS', supplier:'Amazon', qty:'1 kit', status:'in-stock', note:'Delivered Mar 14' },
+  { cat:'Stencils',  name:'FREEBLOSS Stencil Kit \u2014 Geometric 2', detail:'12-piece \u00b7 Shippo patterns', maker:'FREEBLOSS', supplier:'Amazon', qty:'1 kit', status:'in-stock', note:'Delivered Mar 14' },
+  { cat:'Stencils',  name:'FREEBLOSS Stencil Kit \u2014 Flowers',     detail:'12-piece \u00b7 Sakura/floral',   maker:'FREEBLOSS', supplier:'Amazon', qty:'1 kit', status:'in-stock', note:'Delivered Mar 14' },
+  { cat:'Stencils',  name:'Crane Stencil',                             detail:'Individual \u00b7 center square', maker:'\u2014',    supplier:'\u2014', qty:'1',     status:'in-stock', note:'In hand' },
+  { cat:'Notions',   name:'Clover Mini Wonder Clips',                  detail:'50 pcs \u00b7 fabric clips',      maker:'Clover',   supplier:'Amazon', qty:'1 pack', status:'in-stock', note:'Delivered Mar 14' },
+  { cat:'Notions',   name:'Clover White Chaco Liner Pen',              detail:'Stencil marking pen',             maker:'Clover',   supplier:'Amazon', qty:'1',      status:'on-order',   note:'Arriving Mar 31' },
+  { cat:'Notions',   name:'Clover Chaco Liner Refill \u2014 White',    detail:'Refill for Chaco Liner',          maker:'Clover',   supplier:'Amazon', qty:'1',      status:'on-order',   note:'Arriving Mar 26' },
+  { cat:'Notions',   name:'Clover Protect & Grip Thimble \u2014 Medium', detail:'Hand-stitching thimble',        maker:'Clover',   supplier:'Amazon', qty:'1',      status:'on-order',   note:'Arriving Apr 1' },
+  { cat:'Notions',   name:'Clover Protect & Grip Thimble \u2014 Large',  detail:'Hand-stitching thimble',        maker:'Clover',   supplier:'Amazon', qty:'1',      status:'in-stock', note:'Delivered Mar 22' },
+  { cat:'Notions',   name:'Wooden Needle Case',                        detail:'2-piece set',                     maker:'\u2014',   supplier:'Amazon', qty:'1 set',  status:'on-order',   note:'Arriving Mar 23' },
+  { cat:'Notions',   name:'Japanese-style Pin Cushion',                detail:'Tomato-style cushion',            maker:'\u2014',   supplier:'Amazon', qty:'1',      status:'on-order',   note:'Arriving Mar 27' },
+  { cat:'Tools',     name:'Fiskars Crafts Essentials 5-piece',         detail:'Rotary cutter, mat & rulers',     maker:'Fiskars',  supplier:'Amazon', qty:'1 set',  status:'in-stock', note:'Delivered Mar 14' },
+  { cat:'Tools',     name:'Fiskars Sewing Essentials 6-piece',         detail:'Scissors, seam ripper, etc.',     maker:'Fiskars',  supplier:'Amazon', qty:'1 set',  status:'in-stock', note:'Delivered Mar 13' },
+  { cat:'Tools',     name:'Fiskars Self-Healing Cutting Mat 18\u201d\u00d724\u201d', detail:'Lilac \u00b7 extra cutting surface', maker:'Fiskars', supplier:'Amazon', qty:'1', status:'on-order', note:'Arriving Mar 23' },
+  { cat:'Tools',     name:'Fiskars Sewing Ruler 6\u201d\u00d724\u201d', detail:'Long quilting ruler',            maker:'Fiskars',  supplier:'Amazon', qty:'1',      status:'on-order',   note:'Arriving Mar 24' },
+  { cat:'Tools',     name:'Gingher 8\u201d Dressmaker Shears',         detail:'Right-hand fabric scissors',      maker:'Gingher',  supplier:'Amazon', qty:'1',      status:'on-order',   note:'Arriving Mar 27\u2013Apr 2' },
+  { cat:'Tools',     name:'Sewing Machine',                            detail:'Brother HC1850 or CS7000X',       maker:'Brother',  supplier:'TBD',    qty:'1',      status:'to-order',   role:'Machine piecing + assembly' },
+  { cat:'Reference', name:'Kona Printed Color Chart 24\u201d Panel',   detail:'Full Kona palette reference',     maker:'Robert Kaufman', supplier:'Amazon', qty:'1 panel', status:'in-stock', note:'Delivered Mar 18' },
 ];
 
 let supplies = null;
@@ -777,23 +777,20 @@ function resetLocalData() {
 //  UI
 // ─────────────────────────────────────────────
 let activeCat    = 'All';
-let activeStatus = 'All Items';
+let activeStatus = 'all';
 let activeReorder = 'All';
 let editingId    = null;
 
 function matchesCat(s)    { return activeCat === 'All' || s.cat === activeCat; }
 function matchesStatus(s) {
-  if (activeStatus === 'All Items')       return true;
-  if (activeStatus === 'Delivered')       return s.status === 'delivered';
-  if (activeStatus === 'En Route')        return s.status === 'enroute';
-  if (activeStatus === 'Not Yet Ordered') return s.status === 'pending';
-  return true;
+  if (activeStatus === 'all') return true;
+  return s.status === activeStatus;
 }
 function matchesReorder(s) {
   if (activeReorder === 'All')        return true;
   if (activeReorder === 'yes')        return s.reorder === 'yes';
   if (activeReorder === 'no')         return s.reorder === 'no';
-  if (activeReorder === 'undecided')  return !s.reorder || s.reorder === 'undecided';
+  if (activeReorder === 'undecided')  return !s.reorder;
   return true;
 }
 function matchesSearch(s) {
@@ -807,7 +804,7 @@ function esc(s) {
 }
 
 function renderFilters() {
-  const statHasVal  = activeStatus  !== 'All Items';
+  const statHasVal  = activeStatus  !== 'all';
   const reordHasVal = activeReorder !== 'All';
   document.getElementById('filters').innerHTML = `
     <div class="filter-group">
@@ -818,10 +815,11 @@ function renderFilters() {
     <div class="filter-group">
       <span class="filter-label">Status</span>
       <select class="filter-select${statHasVal?' has-value':''}" onchange="setStat(this.value)">
-        <option value="All Items"${activeStatus==='All Items'?' selected':''}>All</option>
-        <option value="Delivered"${activeStatus==='Delivered'?' selected':''}>Delivered</option>
-        <option value="En Route"${activeStatus==='En Route'?' selected':''}>En Route</option>
-        <option value="Not Yet Ordered"${activeStatus==='Not Yet Ordered'?' selected':''}>Not Yet Ordered</option>
+        <option value="all"${activeStatus==='all'?' selected':''}>All</option>
+        <option value="in-stock"${activeStatus==='in-stock'?' selected':''}>In Stock</option>
+        <option value="on-order"${activeStatus==='on-order'?' selected':''}>On Order</option>
+        <option value="to-order"${activeStatus==='to-order'?' selected':''}>To Order</option>
+        <option value="depleted"${activeStatus==='depleted'?' selected':''}>Depleted</option>
       </select>
     </div>
     <div class="filter-group">
@@ -870,10 +868,7 @@ function renderGrid() {
             ${roleHtml}${swHtml}
           </div>
           <div class="card-meta">
-            <span class="card-qty">${esc(s.qty||'')} · ${esc(s.supplier||'')}</span>
-            <div class="card-badges">
-              <span class="badge ${st.cls}">${st.label}</span>${reorderBadge}
-            </div>
+            <span class="badge ${st.cls}">${st.label}</span>${reorderBadge}
           </div>
         </div>`;
       d++;
@@ -883,15 +878,21 @@ function renderGrid() {
 }
 
 function renderSummary() {
-  const src       = supplies.filter(s=>matchesCat(s)&&matchesStatus(s)&&matchesSearch(s));
-  const delivered = src.filter(s=>s.status==='delivered').length;
-  const enroute   = src.filter(s=>s.status==='enroute').length;
-  const pending   = src.filter(s=>s.status==='pending').length;
-  document.getElementById('summary').innerHTML = `
-    <div class="stat"><div class="stat-num">${src.length}</div><div class="stat-label">Total</div></div>
-    <div class="stat"><div class="stat-num">${delivered}</div><div class="stat-label">Delivered</div></div>
-    <div class="stat"><div class="stat-num">${enroute}</div><div class="stat-label">En Route</div></div>
-    ${pending?`<div class="stat"><div class="stat-num" style="color:#3a5070">${pending}</div><div class="stat-label">Still Needed</div></div>`:''}`;
+  const src      = supplies.filter(s=>matchesCat(s)&&matchesStatus(s)&&matchesSearch(s));
+  const inStock  = src.filter(s=>s.status==='in-stock').length;
+  const onOrder  = src.filter(s=>s.status==='on-order').length;
+  const toOrder  = src.filter(s=>s.status==='to-order').length;
+  const depleted = src.filter(s=>s.status==='depleted').length;
+  const stats = [
+    { num:src.length, label:'Total' },
+    { num:inStock,    label:'In Stock' },
+    onOrder  ? { num:onOrder,  label:'On Order' }  : null,
+    toOrder  ? { num:toOrder,  label:'To Order' }  : null,
+    depleted ? { num:depleted, label:'Depleted' }  : null,
+  ].filter(Boolean);
+  document.getElementById('summary').innerHTML = stats
+    .map(s=>`<div class="stat"><div class="stat-num">${s.num}</div><div class="stat-label">${s.label}</div></div>`)
+    .join('');
 }
 
 function openModal(id) {
@@ -904,7 +905,7 @@ function openModal(id) {
   document.getElementById('f-maker').value    = s?.maker    ||'';
   document.getElementById('f-supplier').value = s?.supplier ||'';
   document.getElementById('f-qty').value      = s?.qty      ||'';
-  document.getElementById('f-status').value   = s?.status   ||'delivered';
+  document.getElementById('f-status').value   = s?.status   ||'in-stock';
   document.getElementById('f-role').value     = s?.role     ||'Stash';
   document.getElementById('f-swatch').value   = s?.swatch   ||'';
   document.getElementById('f-notes').value    = s?.note     ||'';
