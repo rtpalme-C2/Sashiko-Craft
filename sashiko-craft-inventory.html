@@ -679,7 +679,7 @@ const statusMap = {
   'to-order':  { label:'To Order',  cls:'badge-to-order'  },
   'depleted':  { label:'Depleted',  cls:'badge-depleted'  },
 };
-const CATS     = ['All','Fabric','Thread','Needles','Stencils','Notions','Tools','Reference'];
+const CATS     = ['All','Fabric','Needles','Notions','Reference','Stencils','Thread','Tools'];
 
 const SEED = [
   { cat:'Fabric', name:'Kona Cotton \u2014 Rose',              detail:'K001-1310 \u00b7 Embroidered squares',     maker:'Robert Kaufman', supplier:'Sewfinity',              qty:'2 yd',   status:'in-stock', swatch:'#C08080', role:"Sophie's Quilt \u2014 embroidered blocks" },
@@ -872,7 +872,7 @@ function renderGrid() {
     filtered.sort((a,b)=>(a.maker||'').localeCompare(b.maker||'') || (a.name||'').localeCompare(b.name||''));
     const groups = {};
     filtered.forEach(s=>{ (groups[s.cat]=groups[s.cat]||[]).push(s); });
-    Object.entries(groups).forEach(([cat,items])=>{
+    Object.entries(groups).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([cat,items])=>{
       if (activeCat==='All') { html+=`<div class="section-label" style="animation-delay:${d*.025}s">${esc(cat)}</div>`; d++; }
       items.forEach(s=>{ html += renderCard(s, d); d++; });
     });
