@@ -449,8 +449,11 @@
     </div>
     <div class="field-row">
       <div class="field">
-        <label>Use / Role</label>
-        <input type="text" id="f-role">
+        <label>Use</label>
+        <select id="f-role">
+          <option value="Stash">Stash</option>
+          <option value="Project">Project</option>
+        </select>
       </div>
       <div class="field">
         <label>Swatch Color</label>
@@ -849,8 +852,7 @@ function renderGrid() {
       const color    = CAT_COLORS[s.cat]||'#4A6080';
       const st       = statusMap[s.status]||statusMap.pending;
       const swHtml   = s.swatch ? `<div class="swatch-row"><div class="swatch" style="background:${esc(s.swatch)}"></div></div>` : '';
-      const noteHtml = s.note   ? `<div class="card-detail" style="margin-top:3px;color:#bbb;font-size:.68rem">${esc(s.note)}</div>` : '';
-      const roleHtml = s.role   ? `<div class="card-detail" style="margin-top:2px"><strong>Use:</strong> ${esc(s.role)}</div>` : '';
+      const roleHtml = s.role && s.role !== 'Stash' ? `<div class="card-detail" style="margin-top:2px"><strong>Use:</strong> ${esc(s.role)}</div>` : '';
       const reorderBadge = s.reorder === 'yes' ? `<span class="badge badge-reorder-yes">Reorder</span>`
                          : s.reorder === 'no'  ? `<span class="badge badge-reorder-no">Skip</span>`
                          : '';
@@ -865,7 +867,7 @@ function renderGrid() {
             <div class="card-name">${esc(s.name)}</div>
             <div class="card-detail">${esc(s.detail||'')}</div>
             <div class="card-detail" style="margin-top:2px"><strong>Maker:</strong> ${esc(s.maker||'\u2014')}</div>
-            ${roleHtml}${swHtml}${noteHtml}
+            ${roleHtml}${swHtml}
           </div>
           <div class="card-meta">
             <span class="card-qty">${esc(s.qty||'')} · ${esc(s.supplier||'')}</span>
@@ -903,7 +905,7 @@ function openModal(id) {
   document.getElementById('f-supplier').value = s?.supplier ||'';
   document.getElementById('f-qty').value      = s?.qty      ||'';
   document.getElementById('f-status').value   = s?.status   ||'delivered';
-  document.getElementById('f-role').value     = s?.role     ||'';
+  document.getElementById('f-role').value     = s?.role     ||'Stash';
   document.getElementById('f-swatch').value   = s?.swatch   ||'';
   document.getElementById('f-notes').value    = s?.note     ||'';
   setReorderModal(s?.reorder || null);
