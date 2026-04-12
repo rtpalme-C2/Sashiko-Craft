@@ -137,6 +137,19 @@
     background:var(--ai-indigo); color:white; cursor:pointer; transition:background .18s; white-space:nowrap;
   }
   .btn-add-item:hover { background:var(--deep-ai); }
+  .sort-wrap { display:flex; align-items:center; gap:6px; }
+  .sort-label { font-size:.6rem; text-transform:uppercase; letter-spacing:.1em; color:#bbb; flex-shrink:0; }
+  .sort-select {
+    font-family:'Plus Jakarta Sans',sans-serif; font-size:.72rem; font-weight:500;
+    color:var(--steel-blue); background:white; border:1.5px solid var(--sky-thread);
+    border-radius:20px; padding:5px 26px 5px 12px; cursor:pointer;
+    appearance:none; -webkit-appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238AAEC4' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 10px center;
+    transition:border-color .15s; outline:none;
+  }
+  .sort-select:focus { border-color:var(--steel-blue); }
+  .sort-select.has-value { border-color:var(--ai-indigo); color:var(--ai-indigo); background-color:rgba(26,40,64,.06); }
 
   /* ── Summary ── */
   .summary { display:flex; gap:16px; padding:20px 40px 4px; flex-wrap:wrap; }
@@ -368,6 +381,15 @@
   <div class="search-wrap">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
     <input type="text" id="search" placeholder="Search inventory…" oninput="renderGrid(); renderSummary();">
+  </div>
+  <div class="sort-wrap">
+    <span class="sort-label">Sort</span>
+    <select class="sort-select" id="sort-select" onchange="setSort(this.value)">
+      <option value="default">Default</option>
+      <option value="name">Name</option>
+      <option value="maker">Maker</option>
+      <option value="status">Status</option>
+    </select>
   </div>
   <button class="btn-add-item" onclick="openModal()">+ Add Item</button>
 </div>
@@ -779,6 +801,7 @@ function resetLocalData() {
 let activeCat    = 'All';
 let activeStatus = 'all';
 let activeReorder = 'All';
+let activeSort   = 'default';
 let editingId    = null;
 
 function matchesCat(s)    { return activeCat === 'All' || s.cat === activeCat; }
@@ -836,17 +859,48 @@ function renderFilters() {
 function setCat(c)      { activeCat=c;      renderFilters(); renderGrid(); renderSummary(); }
 function setStat(s)     { activeStatus=s;   renderFilters(); renderGrid(); renderSummary(); }
 function setReorder(r)  { activeReorder=r;  renderFilters(); renderGrid(); renderSummary(); }
+function setSort(s)     { activeSort=s;     updateSortSelect(); renderGrid(); }
+
+function updateSortSelect() {
+  const el = document.getElementById('sort-select');
+  if (!el) return;
+  el.value = activeSort;
+  el.classList.toggle('has-value', activeSort !== 'default');
+}
 
 function renderGrid() {
   const el = document.getElementById('grid');
-  const filtered = supplies.filter(s=>matchesCat(s)&&matchesStatus(s)&&matchesSearch(s)&&matchesReorder(s));
+  let filtered = supplies.filter(s=>matchesCat(s)&&matchesStatus(s)&&matchesSearch(s)&&matchesReorder(s));
   if (!filtered.length) { el.innerHTML=`<div class="no-results">Nothing found.</div>`; return; }
-  const groups = {};
-  filtered.forEach(s=>{ (groups[s.cat]=groups[s.cat]||[]).push(s); });
+
+  const statusOrder = {'in-stock':0,'on-order':1,'to-order':2,'depleted':3};
+  const useGroups = activeSort === 'default';
+
+  if (activeSort === 'name') {
+    filtered.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  } else if (activeSort === 'maker') {
+    filtered.sort((a,b)=>(a.maker||'').localeCompare(b.maker||'') || (a.name||'').localeCompare(b.name||''));
+  } else if (activeSort === 'status') {
+    filtered.sort((a,b)=>(statusOrder[a.status]??9)-(statusOrder[b.status]??9) || (a.name||'').localeCompare(b.name||''));
+  }
+
   let html='', d=0;
-  Object.entries(groups).forEach(([cat,items])=>{
-    if (activeCat==='All') { html+=`<div class="section-label" style="animation-delay:${d*.025}s">${esc(cat)}</div>`; d++; }
-    items.forEach(s=>{
+
+  if (useGroups) {
+    const groups = {};
+    filtered.forEach(s=>{ (groups[s.cat]=groups[s.cat]||[]).push(s); });
+    Object.entries(groups).forEach(([cat,items])=>{
+      if (activeCat==='All') { html+=`<div class="section-label" style="animation-delay:${d*.025}s">${esc(cat)}</div>`; d++; }
+      items.forEach(s=>{ html += renderCard(s, d); d++; });
+    });
+  } else {
+    filtered.forEach(s=>{ html += renderCard(s, d); d++; });
+  }
+
+  el.innerHTML = html;
+}
+
+function renderCard(s, d) {
       const color    = CAT_COLORS[s.cat]||'#4A6080';
       const st       = statusMap[s.status]||statusMap.pending;
       const swHtml   = s.swatch ? `<div class="swatch-row"><div class="swatch" style="background:${esc(s.swatch)}"></div></div>` : '';
@@ -854,7 +908,7 @@ function renderGrid() {
       const reorderBadge = s.reorder === 'yes' ? `<span class="badge badge-reorder-yes">Reorder</span>`
                          : s.reorder === 'no'  ? `<span class="badge badge-reorder-no">Skip</span>`
                          : '';
-      html+=`
+  const card = `
         <div class="card" style="animation-delay:${d*.025}s; border-left-color:${color}">
           <button class="card-menu-btn" onclick="toggleCardMenu(event,'menu-${s.id}')">···</button>
           <div class="card-menu" id="menu-${s.id}">
@@ -871,10 +925,7 @@ function renderGrid() {
             <span class="badge ${st.cls}">${st.label}</span>${reorderBadge}
           </div>
         </div>`;
-      d++;
-    });
-  });
-  el.innerHTML = html;
+  return card;
 }
 
 function renderSummary() {
