@@ -137,19 +137,7 @@
     background:var(--ai-indigo); color:white; cursor:pointer; transition:background .18s; white-space:nowrap;
   }
   .btn-add-item:hover { background:var(--deep-ai); }
-  .sort-wrap { display:flex; align-items:center; gap:6px; }
-  .sort-label { font-size:.6rem; text-transform:uppercase; letter-spacing:.1em; color:#bbb; flex-shrink:0; }
-  .sort-select {
-    font-family:'Plus Jakarta Sans',sans-serif; font-size:.72rem; font-weight:500;
-    color:var(--steel-blue); background:white; border:1.5px solid var(--sky-thread);
-    border-radius:20px; padding:5px 26px 5px 12px; cursor:pointer;
-    appearance:none; -webkit-appearance:none;
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238AAEC4' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-    background-repeat:no-repeat; background-position:right 10px center;
-    transition:border-color .15s; outline:none;
-  }
-  .sort-select:focus { border-color:var(--steel-blue); }
-  .sort-select.has-value { border-color:var(--ai-indigo); color:var(--ai-indigo); background-color:rgba(26,40,64,.06); }
+
 
   /* ── Summary ── */
   .summary { display:flex; gap:16px; padding:20px 40px 4px; flex-wrap:wrap; }
@@ -381,15 +369,6 @@
   <div class="search-wrap">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
     <input type="text" id="search" placeholder="Search inventory…" oninput="renderGrid(); renderSummary();">
-  </div>
-  <div class="sort-wrap">
-    <span class="sort-label">Sort</span>
-    <select class="sort-select" id="sort-select" onchange="setSort(this.value)">
-      <option value="default">Default</option>
-      <option value="name">Name</option>
-      <option value="maker">Maker</option>
-      <option value="status">Status</option>
-    </select>
   </div>
   <button class="btn-add-item" onclick="openModal()">+ Add Item</button>
 </div>
@@ -853,20 +832,23 @@ function renderFilters() {
         <option value="no"${activeReorder==='no'?' selected':''}>✕ Would Not Reorder</option>
         <option value="undecided"${activeReorder==='undecided'?' selected':''}>Not Decided</option>
       </select>
+    </div>
+    <div class="filter-divider"></div>
+    <div class="filter-group">
+      <span class="filter-label">Sort</span>
+      <select class="filter-select${activeSort!=='default'?' has-value':''}" onchange="setSort(this.value)">
+        <option value="default"${activeSort==='default'?' selected':''}>Default</option>
+        <option value="name"${activeSort==='name'?' selected':''}>Name</option>
+        <option value="maker"${activeSort==='maker'?' selected':''}>Maker</option>
+        <option value="status"${activeSort==='status'?' selected':''}>Status</option>
+      </select>
     </div>`;
 }
 
 function setCat(c)      { activeCat=c;      renderFilters(); renderGrid(); renderSummary(); }
 function setStat(s)     { activeStatus=s;   renderFilters(); renderGrid(); renderSummary(); }
 function setReorder(r)  { activeReorder=r;  renderFilters(); renderGrid(); renderSummary(); }
-function setSort(s)     { activeSort=s;     updateSortSelect(); renderGrid(); }
-
-function updateSortSelect() {
-  const el = document.getElementById('sort-select');
-  if (!el) return;
-  el.value = activeSort;
-  el.classList.toggle('has-value', activeSort !== 'default');
-}
+function setSort(s)     { activeSort=s;     renderFilters(); renderGrid(); }
 
 function renderGrid() {
   const el = document.getElementById('grid');
