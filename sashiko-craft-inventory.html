@@ -146,23 +146,32 @@
 
   /* ── Filters ── */
   .filters {
-    display:flex; flex-direction:column; gap:8px; padding:16px 40px;
-    background:white; border-bottom:1px solid var(--sky-thread);
+    display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+    padding:10px 40px; background:white; border-bottom:1px solid var(--sky-thread);
     position:sticky; top:0; z-index:10; box-shadow:0 2px 12px var(--shadow);
   }
-  .filter-row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-  .filter-label { font-size:.63rem; text-transform:uppercase; letter-spacing:.09em; color:#ccc; margin-right:2px; flex-shrink:0; }
+  .filter-group { display:flex; align-items:center; gap:6px; }
+  .filter-label { font-size:.6rem; text-transform:uppercase; letter-spacing:.1em; color:#bbb; flex-shrink:0; }
+  .filter-divider { width:1px; height:22px; background:var(--sky-thread); flex-shrink:0; }
   .filter-btn {
-    font-family:'Plus Jakarta Sans',sans-serif; font-size:.71rem; font-weight:500;
-    letter-spacing:.06em; text-transform:uppercase;
-    padding:5px 13px; border-radius:20px; border:1.5px solid var(--sky-thread);
-    background:white; color:var(--steel-blue); cursor:pointer; transition:all .18s;
+    font-family:'Plus Jakarta Sans',sans-serif; font-size:.68rem; font-weight:500;
+    letter-spacing:.04em; padding:4px 11px; border-radius:20px;
+    border:1.5px solid transparent; background:transparent;
+    color:var(--steel-blue); cursor:pointer; transition:all .15s; white-space:nowrap;
   }
-  .filter-btn:hover { border-color:var(--steel-blue); color:var(--deep-ai); }
-  .filter-btn.active { background:var(--deep-ai); border-color:var(--deep-ai); color:white; }
-  .filter-btn-status { font-size:.67rem; border-color:#EBEBEB; color:#bbb; }
-  .filter-btn-status:hover { border-color:var(--steel-blue); color:var(--deep-ai); }
-  .filter-btn-status.active { background:var(--deep-ai); border-color:var(--deep-ai); color:white; }
+  .filter-btn:hover { background:var(--sky-thread); }
+  .filter-btn.active { background:var(--ai-indigo); color:white; }
+  .filter-select {
+    font-family:'Plus Jakarta Sans',sans-serif; font-size:.68rem; font-weight:500;
+    color:var(--steel-blue); background:transparent; border:1.5px solid var(--sky-thread);
+    border-radius:20px; padding:4px 24px 4px 11px; cursor:pointer;
+    appearance:none; -webkit-appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238AAEC4' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 9px center;
+    transition:border-color .15s;
+  }
+  .filter-select:focus { outline:none; border-color:var(--steel-blue); }
+  .filter-select.has-value { border-color:var(--ai-indigo); color:var(--ai-indigo); background-color:rgba(26,40,64,.06); }
 
   /* ── Grid ── */
   .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:16px; padding:24px 40px 48px; }
@@ -195,6 +204,19 @@
   .badge-delivered { background:#d0e8d8; color:#1a5c38; }
   .badge-enroute   { background:#ccdcee; color:#1a3c60; }
   .badge-pending   { background:#dde4ec; color:#3a5070; }
+  .badge-reorder-yes { background:rgba(90,171,122,.18); color:#1a5c38; border:1px solid rgba(90,171,122,.3); margin-left:5px; }
+  .badge-reorder-no  { background:rgba(176,80,80,.12);  color:#7a2020; border:1px solid rgba(176,80,80,.22); margin-left:5px; }
+
+  .reorder-toggle { display:flex; gap:6px; flex-wrap:wrap; margin-top:2px; }
+  .reorder-btn {
+    font-family:'Plus Jakarta Sans',sans-serif; font-size:.7rem; font-weight:500;
+    padding:5px 12px; border-radius:20px; border:1.5px solid var(--sky-thread);
+    background:transparent; color:var(--steel-blue); cursor:pointer; transition:all .15s;
+  }
+  .reorder-btn:hover { border-color:var(--thread-blue); }
+  .reorder-btn.active[id="rbtn-yes"]  { background:rgba(90,171,122,.15); border-color:#5aab7a; color:#1a5c38; }
+  .reorder-btn.active[id="rbtn-no"]   { background:rgba(176,80,80,.10);  border-color:#b05050; color:#7a2020; }
+  .reorder-btn.active[id="rbtn-null"] { background:var(--sky-thread); border-color:var(--thread-blue); color:var(--ai-indigo); }
   .swatch-row { display:flex; gap:5px; margin-top:7px; }
   .swatch { width:17px; height:17px; border-radius:50%; border:1.5px solid rgba(0,0,0,.1); }
   .section-label {
@@ -254,10 +276,14 @@
   @media (max-width:768px) {
     header { padding:24px 20px 20px; }
     .sync-bar, .top-bar, .summary, .filters, .config-notice { padding-left:16px; padding-right:16px; }
+    .filters { gap:10px; }
+    .filter-divider { display:none; }
     .grid { padding:16px; gap:12px; }
   }
   @media (max-width:480px) {
     header h1 { font-size:1.7rem; }
+    .filters { flex-direction:column; align-items:flex-start; gap:8px; }
+    .filter-group { flex-wrap:wrap; }
     .grid { grid-template-columns:1fr; }
   }
 </style>
@@ -417,6 +443,14 @@
     <div class="field">
       <label>Notes</label>
       <textarea id="f-notes"></textarea>
+    </div>
+    <div class="field">
+      <label>Reorder</label>
+      <div class="reorder-toggle">
+        <button type="button" class="reorder-btn" id="rbtn-yes"   onclick="setReorderModal('yes')">↺ Would Reorder</button>
+        <button type="button" class="reorder-btn" id="rbtn-null"  onclick="setReorderModal(null)">Not Decided</button>
+        <button type="button" class="reorder-btn" id="rbtn-no"    onclick="setReorderModal('no')">✕ Would Not Reorder</button>
+      </div>
     </div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal()">Cancel</button>
@@ -724,6 +758,7 @@ function resetLocalData() {
 // ─────────────────────────────────────────────
 let activeCat    = 'All';
 let activeStatus = 'All Items';
+let activeReorder = 'All';
 let editingId    = null;
 
 function matchesCat(s)    { return activeCat === 'All' || s.cat === activeCat; }
@@ -732,6 +767,13 @@ function matchesStatus(s) {
   if (activeStatus === 'Delivered')       return s.status === 'delivered';
   if (activeStatus === 'En Route')        return s.status === 'enroute';
   if (activeStatus === 'Not Yet Ordered') return s.status === 'pending';
+  return true;
+}
+function matchesReorder(s) {
+  if (activeReorder === 'All')        return true;
+  if (activeReorder === 'yes')        return s.reorder === 'yes';
+  if (activeReorder === 'no')         return s.reorder === 'no';
+  if (activeReorder === 'undecided')  return !s.reorder || s.reorder === 'undecided';
   return true;
 }
 function matchesSearch(s) {
@@ -745,23 +787,41 @@ function esc(s) {
 }
 
 function renderFilters() {
+  const statHasVal  = activeStatus  !== 'All Items';
+  const reordHasVal = activeReorder !== 'All';
   document.getElementById('filters').innerHTML = `
-    <div class="filter-row">
+    <div class="filter-group">
       <span class="filter-label">Category</span>
       ${CATS.map(c=>`<button class="filter-btn${c===activeCat?' active':''}" onclick="setCat('${c}')">${c}</button>`).join('')}
     </div>
-    <div class="filter-row">
+    <div class="filter-divider"></div>
+    <div class="filter-group">
       <span class="filter-label">Status</span>
-      ${STATUSES.map(s=>`<button class="filter-btn filter-btn-status${s===activeStatus?' active':''}" onclick="setStat('${s.replace(/'/g,"\\'")}')">${s}</button>`).join('')}
+      <select class="filter-select${statHasVal?' has-value':''}" onchange="setStat(this.value)">
+        <option value="All Items"${activeStatus==='All Items'?' selected':''}>All</option>
+        <option value="Delivered"${activeStatus==='Delivered'?' selected':''}>Delivered</option>
+        <option value="En Route"${activeStatus==='En Route'?' selected':''}>En Route</option>
+        <option value="Not Yet Ordered"${activeStatus==='Not Yet Ordered'?' selected':''}>Not Yet Ordered</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Reorder</span>
+      <select class="filter-select${reordHasVal?' has-value':''}" onchange="setReorder(this.value)">
+        <option value="All"${activeReorder==='All'?' selected':''}>All</option>
+        <option value="yes"${activeReorder==='yes'?' selected':''}>↺ Would Reorder</option>
+        <option value="no"${activeReorder==='no'?' selected':''}>✕ Would Not Reorder</option>
+        <option value="undecided"${activeReorder==='undecided'?' selected':''}>Not Decided</option>
+      </select>
     </div>`;
 }
 
-function setCat(c)  { activeCat=c;    renderFilters(); renderGrid(); renderSummary(); }
-function setStat(s) { activeStatus=s; renderFilters(); renderGrid(); renderSummary(); }
+function setCat(c)      { activeCat=c;      renderFilters(); renderGrid(); renderSummary(); }
+function setStat(s)     { activeStatus=s;   renderFilters(); renderGrid(); renderSummary(); }
+function setReorder(r)  { activeReorder=r;  renderFilters(); renderGrid(); renderSummary(); }
 
 function renderGrid() {
   const el = document.getElementById('grid');
-  const filtered = supplies.filter(s=>matchesCat(s)&&matchesStatus(s)&&matchesSearch(s));
+  const filtered = supplies.filter(s=>matchesCat(s)&&matchesStatus(s)&&matchesSearch(s)&&matchesReorder(s));
   if (!filtered.length) { el.innerHTML=`<div class="no-results">Nothing found.</div>`; return; }
   const groups = {};
   filtered.forEach(s=>{ (groups[s.cat]=groups[s.cat]||[]).push(s); });
@@ -774,6 +834,9 @@ function renderGrid() {
       const swHtml   = s.swatch ? `<div class="swatch-row"><div class="swatch" style="background:${esc(s.swatch)}"></div></div>` : '';
       const noteHtml = s.note   ? `<div class="card-detail" style="margin-top:3px;color:#bbb;font-size:.69rem">${esc(s.note)}</div>` : '';
       const roleHtml = s.role   ? `<div class="card-detail" style="margin-top:3px"><strong>Use:</strong> ${esc(s.role)}</div>` : '';
+      const reorderHtml = s.reorder === 'yes' ? `<span class="badge badge-reorder-yes">↺ Would Reorder</span>`
+                        : s.reorder === 'no'  ? `<span class="badge badge-reorder-no">✕ Would Not Reorder</span>`
+                        : '';
       html+=`
         <div class="card" style="animation-delay:${d*.025}s">
           <div class="card-top" style="background:${color}"></div>
@@ -791,7 +854,7 @@ function renderGrid() {
               <button class="btn-card del" onclick="deleteItem('${s.id}')">Delete</button>
             </div>
           </div>
-          <div class="badge-row"><span class="badge ${st.cls}">${st.label}</span></div>
+          <div class="badge-row"><span class="badge ${st.cls}">${st.label}</span>${reorderHtml}</div>
         </div>`;
       d++;
     });
@@ -825,11 +888,21 @@ function openModal(id) {
   document.getElementById('f-role').value     = s?.role     ||'';
   document.getElementById('f-swatch').value   = s?.swatch   ||'';
   document.getElementById('f-notes').value    = s?.note     ||'';
+  setReorderModal(s?.reorder || null);
   document.getElementById('modal').classList.add('open');
   setTimeout(()=>document.getElementById('f-name').focus(),50);
 }
 
 function closeModal() { document.getElementById('modal').classList.remove('open'); editingId=null; }
+
+let reorderModalVal = null;
+function setReorderModal(val) {
+  reorderModalVal = val;
+  ['yes', 'null', 'no'].forEach(k => {
+    const btn = document.getElementById('rbtn-' + k);
+    btn.classList.toggle('active', (val === null ? 'null' : val) === k);
+  });
+}
 function backdropClose(e) { if(e.target===document.getElementById('modal')) closeModal(); }
 
 function saveItem() {
@@ -847,6 +920,7 @@ function saveItem() {
     role:     document.getElementById('f-role').value.trim(),
     swatch:   document.getElementById('f-swatch').value.trim(),
     note:     document.getElementById('f-notes').value.trim(),
+    reorder:  reorderModalVal,
   };
   supplies = editingId ? supplies.map(s=>s.id===editingId?item:s) : [item,...supplies];
   scheduleSave();
