@@ -869,6 +869,7 @@ function renderGrid() {
   let html='', d=0;
 
   if (useGroups) {
+    filtered.sort((a,b)=>(a.maker||'').localeCompare(b.maker||'') || (a.name||'').localeCompare(b.name||''));
     const groups = {};
     filtered.forEach(s=>{ (groups[s.cat]=groups[s.cat]||[]).push(s); });
     Object.entries(groups).forEach(([cat,items])=>{
