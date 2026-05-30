@@ -527,7 +527,7 @@ const GH_RAW_URL  = `https://raw.githubusercontent.com/${GH_OWNER}/${GH_REPO}/ma
 const GH_API_URL  = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_FILE}`;
 const LS_PAT      = 'sashiko_gh_pat';
 const LS_SHA      = 'sashiko_gh_sha';
-const LS_DATA_KEY = 'sashiko-v4';
+const LS_DATA_KEY = 'sashiko-v3';
 
 // ── Data version contract ─────────────────────────────────────────────────
 // DATA_VERSION guards against loading stale/incompatible localStorage data.
@@ -541,7 +541,7 @@ const LS_DATA_KEY = 'sashiko-v4';
 //     before the `if (!supplies)` block below.
 //   • Minor additions (new optional fields) do NOT require a version bump —
 //     just use optional chaining (s?.newField) when reading.
-const DATA_VERSION = 4;
+const DATA_VERSION = 3;
 
 let saveTimer   = null;
 let pendingSave = false;
