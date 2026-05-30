@@ -407,7 +407,7 @@
       </div>
       <div class="field">
         <label>Category</label>
-        <select id="f-cat">
+        <select id="f-cat" onchange="toggleFabricFields(this.value)">
           <option value="Fabric">Fabric</option>
           <option value="Thread">Thread</option>
           <option value="Needles">Needles</option>
@@ -418,9 +418,43 @@
         </select>
       </div>
     </div>
+    <!-- Fabric-specific fields (shown only when cat=Fabric) -->
+    <div id="fabric-fields">
+      <div class="field-row">
+        <div class="field" style="flex:2">
+          <label>Collection / Bundle</label>
+          <input type="text" id="f-collection" placeholder="e.g. Pantone 2026 Powdered Pastels">
+        </div>
+        <div class="field">
+          <label>Fabric Code / SKU</label>
+          <input type="text" id="f-fabric-code" placeholder="e.g. K001-861">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Form</label>
+          <select id="f-form">
+            <option value="">— Select —</option>
+            <option value="Yardage">Yardage</option>
+            <option value="Fat Quarter">Fat Quarter</option>
+            <option value="Fat Eighth">Fat Eighth</option>
+            <option value="Panel">Panel</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Pre-Washed</label>
+          <select id="f-prewashed">
+            <option value="Unknown">Unknown</option>
+            <option value="Yes">Yes</option>
+            <option value="No">No</option>
+          </select>
+        </div>
+      </div>
+    </div>
     <div class="field">
-      <label>Detail</label>
-      <input type="text" id="f-detail" placeholder="e.g. K001-1310 · Embroidered squares">
+      <label>Detail / Notes</label>
+      <input type="text" id="f-detail" placeholder="Additional notes">
     </div>
     <div class="field-row">
       <div class="field">
@@ -493,7 +527,7 @@ const GH_RAW_URL  = `https://raw.githubusercontent.com/${GH_OWNER}/${GH_REPO}/ma
 const GH_API_URL  = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_FILE}`;
 const LS_PAT      = 'sashiko_gh_pat';
 const LS_SHA      = 'sashiko_gh_sha';
-const LS_DATA_KEY = 'sashiko-v3';
+const LS_DATA_KEY = 'sashiko-v4';
 
 // ── Data version contract ─────────────────────────────────────────────────
 // DATA_VERSION guards against loading stale/incompatible localStorage data.
@@ -507,7 +541,7 @@ const LS_DATA_KEY = 'sashiko-v3';
 //     before the `if (!supplies)` block below.
 //   • Minor additions (new optional fields) do NOT require a version bump —
 //     just use optional chaining (s?.newField) when reading.
-const DATA_VERSION = 3;
+const DATA_VERSION = 4;
 
 let saveTimer   = null;
 let pendingSave = false;
@@ -779,6 +813,8 @@ function resetLocalData() {
 let activeCat    = 'All';
 let activeStatus = 'all';
 let activeReorder = 'All';
+let activeForm   = 'All';
+let activeUse    = 'All';
 let activeSort   = 'default';
 let editingId    = null;
 
@@ -786,6 +822,14 @@ function matchesCat(s)    { return activeCat === 'All' || s.cat === activeCat; }
 function matchesStatus(s) {
   if (activeStatus === 'all') return true;
   return s.status === activeStatus;
+}
+function matchesForm(s) {
+  if (activeForm === 'All') return true;
+  return (s.form || '') === activeForm;
+}
+function matchesUse(s) {
+  if (activeUse === 'All') return true;
+  return (s.role || '') === activeUse;
 }
 function matchesReorder(s) {
   if (activeReorder === 'All')        return true;
@@ -797,7 +841,7 @@ function matchesReorder(s) {
 function matchesSearch(s) {
   const q = (document.getElementById('search').value||'').toLowerCase();
   if (!q) return true;
-  return [s.name,s.cat,s.detail,s.maker,s.supplier,s.role,s.note,s.qty].some(v=>v&&v.toLowerCase().includes(q));
+  return [s.name,s.cat,s.detail,s.maker,s.supplier,s.role,s.note,s.qty,s.collection,s['fabric-code'],s.form].some(v=>v&&v.toLowerCase().includes(q));
 }
 
 function esc(s) {
@@ -807,6 +851,9 @@ function esc(s) {
 function renderFilters() {
   const statHasVal  = activeStatus  !== 'all';
   const reordHasVal = activeReorder !== 'All';
+  const formHasVal  = activeForm    !== 'All';
+  const useHasVal   = activeUse     !== 'All';
+  const isFabric    = activeCat === 'Fabric';
   document.getElementById('filters').innerHTML = `
     <div class="filter-group">
       <span class="filter-label">Category</span>
@@ -823,6 +870,26 @@ function renderFilters() {
         <option value="depleted"${activeStatus==='depleted'?' selected':''}>Depleted</option>
       </select>
     </div>
+    ${isFabric ? `
+    <div class="filter-group">
+      <span class="filter-label">Form</span>
+      <select class="filter-select${formHasVal?' has-value':''}" onchange="setForm(this.value)">
+        <option value="All"${activeForm==='All'?' selected':''}>All</option>
+        <option value="Yardage"${activeForm==='Yardage'?' selected':''}>Yardage</option>
+        <option value="Fat Quarter"${activeForm==='Fat Quarter'?' selected':''}>Fat Quarter</option>
+        <option value="Fat Eighth"${activeForm==='Fat Eighth'?' selected':''}>Fat Eighth</option>
+        <option value="Panel"${activeForm==='Panel'?' selected':''}>Panel</option>
+        <option value="Other"${activeForm==='Other'?' selected':''}>Other</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Use</span>
+      <select class="filter-select${useHasVal?' has-value':''}" onchange="setUse(this.value)">
+        <option value="All"${activeUse==='All'?' selected':''}>All</option>
+        <option value="Project"${activeUse==='Project'?' selected':''}>Project</option>
+        <option value="Stash"${activeUse==='Stash'?' selected':''}>Stash</option>
+      </select>
+    </div>` : ''}
     <div class="filter-group">
       <span class="filter-label">Reorder</span>
       <select class="filter-select${reordHasVal?' has-value':''}" onchange="setReorder(this.value)">
@@ -844,14 +911,16 @@ function renderFilters() {
     </div>`;
 }
 
-function setCat(c)      { activeCat=c;      renderFilters(); renderGrid(); renderSummary(); }
+function setCat(c)      { activeCat=c; activeForm='All'; activeUse='All'; renderFilters(); renderGrid(); renderSummary(); }
 function setStat(s)     { activeStatus=s;   renderFilters(); renderGrid(); renderSummary(); }
 function setReorder(r)  { activeReorder=r;  renderFilters(); renderGrid(); renderSummary(); }
+function setForm(f)     { activeForm=f;     renderFilters(); renderGrid(); renderSummary(); }
+function setUse(u)      { activeUse=u;      renderFilters(); renderGrid(); renderSummary(); }
 function setSort(s)     { activeSort=s;     renderFilters(); renderGrid(); }
 
 function renderGrid() {
   const el = document.getElementById('grid');
-  let filtered = supplies.filter(s=>matchesCat(s)&&matchesStatus(s)&&matchesSearch(s)&&matchesReorder(s));
+  let filtered = supplies.filter(s=>matchesCat(s)&&matchesStatus(s)&&matchesSearch(s)&&matchesReorder(s)&&matchesForm(s)&&matchesUse(s));
   if (!filtered.length) { el.innerHTML=`<div class="no-results">Nothing found.</div>`; return; }
 
   const statusOrder = {'in-stock':0,'on-order':1,'to-order':2,'depleted':3};
@@ -887,6 +956,10 @@ function renderCard(s, d) {
       const st       = statusMap[s.status]||statusMap.pending;
       const swHtml   = s.swatch ? `<div class="swatch-row"><div class="swatch" style="background:${esc(s.swatch)}"></div></div>` : '';
       const roleHtml = s.role && s.role !== 'Stash' ? `<div class="card-detail" style="margin-top:2px"><strong>Use:</strong> ${esc(s.role)}</div>` : '';
+      const collHtml = s.collection ? `<div class="card-detail" style="margin-top:2px">${esc(s.collection)}</div>` : '';
+      const codeHtml = s['fabric-code'] ? `<div class="card-detail" style="margin-top:1px"><strong>Code:</strong> ${esc(s['fabric-code'])}</div>` : '';
+      const formHtml = s.form ? `<div class="card-detail" style="margin-top:1px"><strong>Form:</strong> ${esc(s.form)}</div>` : '';
+      const washHtml = s.cat === 'Fabric' && s.prewashed ? `<div class="card-detail" style="margin-top:1px"><strong>Pre-washed:</strong> ${esc(s.prewashed)}</div>` : '';
       const reorderBadge = s.reorder === 'yes' ? `<span class="badge badge-reorder-yes">Reorder</span>`
                          : s.reorder === 'no'  ? `<span class="badge badge-reorder-no">Skip</span>`
                          : '';
@@ -898,10 +971,12 @@ function renderCard(s, d) {
             <button class="card-menu-item danger" onclick="closeMenus();deleteItem('${s.id}')">Delete</button>
           </div>
           <div class="card-body">
-            <div class="card-name">${esc(s.name)}</div>
+            <div class="card-name" style="word-break:break-word;white-space:normal">${esc(s.name)}</div>
+            ${collHtml}
             <div class="card-detail">${esc(s.detail||'')}</div>
+            ${codeHtml}${formHtml}
             <div class="card-detail" style="margin-top:2px"><strong>Maker:</strong> ${esc(s.maker||'\u2014')}</div>
-            ${roleHtml}${swHtml}
+            ${roleHtml}${washHtml}${swHtml}
           </div>
           <div class="card-meta">
             <span class="badge ${st.cls}">${st.label}</span>${reorderBadge}
@@ -932,19 +1007,28 @@ function openModal(id) {
   editingId = id||null;
   const s = id ? supplies.find(i=>i.id===id) : null;
   document.getElementById('modal-title').textContent = s ? 'Edit Item' : 'Add Item';
-  document.getElementById('f-name').value     = s?.name     ||'';
-  document.getElementById('f-cat').value      = s?.cat      ||'Fabric';
-  document.getElementById('f-detail').value   = s?.detail   ||'';
-  document.getElementById('f-maker').value    = s?.maker    ||'';
-  document.getElementById('f-supplier').value = s?.supplier ||'';
-  document.getElementById('f-qty').value      = s?.qty      ||'';
-  document.getElementById('f-status').value   = s?.status   ||'in-stock';
-  document.getElementById('f-role').value     = s?.role     ||'Stash';
-  document.getElementById('f-swatch').value   = s?.swatch   ||'';
-  document.getElementById('f-notes').value    = s?.note     ||'';
+  document.getElementById('f-name').value         = s?.name         ||'';
+  document.getElementById('f-cat').value          = s?.cat          ||'Fabric';
+  document.getElementById('f-detail').value       = s?.detail       ||'';
+  document.getElementById('f-collection').value   = s?.collection   ||'';
+  document.getElementById('f-fabric-code').value  = s?.['fabric-code']||'';
+  document.getElementById('f-form').value         = s?.form         ||'';
+  document.getElementById('f-prewashed').value    = s?.prewashed    ||'Unknown';
+  document.getElementById('f-maker').value        = s?.maker        ||'';
+  document.getElementById('f-supplier').value     = s?.supplier     ||'';
+  document.getElementById('f-qty').value          = s?.qty          ||'';
+  document.getElementById('f-status').value       = s?.status       ||'in-stock';
+  document.getElementById('f-role').value         = s?.role         ||'Stash';
+  document.getElementById('f-swatch').value       = s?.swatch       ||'';
+  document.getElementById('f-notes').value        = s?.note         ||'';
   setReorderModal(s?.reorder || null);
+  toggleFabricFields(s?.cat||'Fabric');
   document.getElementById('modal').classList.add('open');
   setTimeout(()=>document.getElementById('f-name').focus(),50);
+}
+
+function toggleFabricFields(cat) {
+  document.getElementById('fabric-fields').style.display = cat === 'Fabric' ? '' : 'none';
 }
 
 function closeModal() { document.getElementById('modal').classList.remove('open'); editingId=null; }
@@ -962,19 +1046,24 @@ function backdropClose(e) { if(e.target===document.getElementById('modal')) clos
 function saveItem() {
   const name = document.getElementById('f-name').value.trim();
   if (!name) { document.getElementById('f-name').focus(); return; }
+  const cat = document.getElementById('f-cat').value;
   const item = {
-    id:       editingId||(Date.now().toString(36)+Math.random().toString(36).slice(2,6)),
+    id:             editingId||(Date.now().toString(36)+Math.random().toString(36).slice(2,6)),
     name,
-    cat:      document.getElementById('f-cat').value,
-    detail:   document.getElementById('f-detail').value.trim(),
-    maker:    document.getElementById('f-maker').value.trim(),
-    supplier: document.getElementById('f-supplier').value.trim(),
-    qty:      document.getElementById('f-qty').value.trim(),
-    status:   document.getElementById('f-status').value,
-    role:     document.getElementById('f-role').value.trim(),
-    swatch:   document.getElementById('f-swatch').value.trim(),
-    note:     document.getElementById('f-notes').value.trim(),
-    reorder:  reorderModalVal,
+    cat,
+    detail:         document.getElementById('f-detail').value.trim(),
+    collection:     cat==='Fabric' ? document.getElementById('f-collection').value.trim() : '',
+    'fabric-code':  cat==='Fabric' ? document.getElementById('f-fabric-code').value.trim() : '',
+    form:           cat==='Fabric' ? document.getElementById('f-form').value : '',
+    prewashed:      cat==='Fabric' ? document.getElementById('f-prewashed').value : '',
+    maker:          document.getElementById('f-maker').value.trim(),
+    supplier:       document.getElementById('f-supplier').value.trim(),
+    qty:            document.getElementById('f-qty').value.trim(),
+    status:         document.getElementById('f-status').value,
+    role:           document.getElementById('f-role').value.trim(),
+    swatch:         document.getElementById('f-swatch').value.trim(),
+    note:           document.getElementById('f-notes').value.trim(),
+    reorder:        reorderModalVal,
   };
   supplies = editingId ? supplies.map(s=>s.id===editingId?item:s) : [item,...supplies];
   scheduleSave();
