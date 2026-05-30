@@ -500,9 +500,9 @@
     <div class="field">
       <label>Reorder</label>
       <div class="reorder-toggle">
-        <button type="button" class="reorder-btn" id="rbtn-yes"   onclick="setReorderModal('yes')">↺ Would Reorder</button>
-        <button type="button" class="reorder-btn" id="rbtn-null"  onclick="setReorderModal(null)">Not Decided</button>
-        <button type="button" class="reorder-btn" id="rbtn-no"    onclick="setReorderModal('no')">✕ Would Not Reorder</button>
+        <button type="button" class="reorder-btn" id="rbtn-yes"   onclick="setReorderModal('yes')">★ Would Buy Again</button>
+        <button type="button" class="reorder-btn" id="rbtn-null"  onclick="setReorderModal(null)">— Undecided</button>
+        <button type="button" class="reorder-btn" id="rbtn-no"    onclick="setReorderModal('no')">✕ Would Not Buy Again</button>
       </div>
     </div>
     <div class="modal-actions">
@@ -890,12 +890,12 @@ function renderFilters() {
       </select>
     </div>` : ''}
     <div class="filter-group">
-      <span class="filter-label">Reorder</span>
+      <span class="filter-label">Rating</span>
       <select class="filter-select${reordHasVal?' has-value':''}" onchange="setReorder(this.value)">
         <option value="All"${activeReorder==='All'?' selected':''}>All</option>
-        <option value="yes"${activeReorder==='yes'?' selected':''}>↺ Would Reorder</option>
-        <option value="no"${activeReorder==='no'?' selected':''}>✕ Would Not Reorder</option>
-        <option value="undecided"${activeReorder==='undecided'?' selected':''}>Not Decided</option>
+        <option value="yes"${activeReorder==='yes'?' selected':''}>★ Would Buy Again</option>
+        <option value="no"${activeReorder==='no'?' selected':''}>✕ Would Not Buy Again</option>
+        <option value="undecided"${activeReorder==='undecided'?' selected':''}>— Undecided</option>
       </select>
     </div>
     <div class="filter-divider"></div>
@@ -959,8 +959,8 @@ function renderCard(s, d) {
       const codeHtml = s['fabric-code'] ? `<div class="card-detail" style="margin-top:1px"><strong>Code:</strong> ${esc(s['fabric-code'])}</div>` : '';
       const formHtml = s.form ? `<div class="card-detail" style="margin-top:1px"><strong>Form:</strong> ${esc(s.form)}</div>` : '';
       const washHtml = s.cat === 'Fabric' && s.prewashed ? `<div class="card-detail" style="margin-top:1px"><strong>Pre-washed:</strong> ${esc(s.prewashed)}</div>` : '';
-      const reorderBadge = s.reorder === 'yes' ? `<span class="badge badge-reorder-yes">Reorder</span>`
-                         : s.reorder === 'no'  ? `<span class="badge badge-reorder-no">Skip</span>`
+      const reorderBadge = s.reorder === 'yes' ? `<span class="badge badge-reorder-yes">Would Buy Again</span>`
+                         : s.reorder === 'no'  ? `<span class="badge badge-reorder-no">Would Not Buy Again</span>`
                          : '';
   const card = `
         <div class="card" style="animation-delay:${d*.025}s; border-left-color:${color}">
