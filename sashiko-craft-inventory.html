@@ -559,6 +559,10 @@ const DATA_VERSION = 3;
 
 let saveTimer   = null;
 let pendingSave = false;
+let remoteReady  = false;  // true once the remote file has been read (or confirmed missing/empty)
+let localTrusted = false;  // true when this device started with real cached data (not seed/empty)
+function pushAllowed() { return remoteReady || localTrusted; }
+function localYMD() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
 
 // ── PAT helpers ──
 function getPAT()  { return localStorage.getItem(LS_PAT) || ''; }
@@ -623,8 +627,10 @@ async function syncFromGitHub() {
     const res = await fetch(GH_RAW_URL + '?t=' + Date.now());
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const text = await res.text();
+    if (!text || !text.trim()) remoteReady = true;
     if (text && text.trim().startsWith('{')) {
       const parsed = JSON.parse(text);
+      remoteReady = true;
       const hasData = parsed && parsed._version === DATA_VERSION &&
         Array.isArray(parsed.data) && parsed.data.length > 0;
       if (hasData) {
@@ -663,6 +669,7 @@ async function fetchSHA() {
 // ── Write to GitHub ──
 async function saveToGitHub() {
   if (!configOk()) return;
+  if (!pushAllowed()) { setSyncStatus('error', 'Not synced yet — changes kept locally'); return; }
   setSyncStatus('saving', 'Saving to GitHub…');
   pendingSave = true;
   try {
@@ -673,7 +680,7 @@ async function saveToGitHub() {
     const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
 
     const body = {
-      message: 'Sashiko Craft update · ' + new Date().toISOString().slice(0,10),
+      message: 'Sashiko Craft update · ' + localYMD(),
       content,
     };
     if (getSHA()) body.sha = getSHA();
@@ -709,6 +716,7 @@ async function saveToGitHub() {
 function scheduleSave() {
   persist();
   if (!configOk()) return;
+  if (!pushAllowed()) { setSyncStatus('error', 'Not synced yet — changes kept locally'); return; }
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => { saveTimer = null; saveToGitHub(); }, 1200);
 }
@@ -808,7 +816,8 @@ try {
   if (raw && raw._version === DATA_VERSION) supplies = raw.data;
   else if (raw) localStorage.removeItem(LS_DATA_KEY);
 } catch(e) {}
-if (!supplies) { supplies = SEED.map((s,i) => ({...s, id:'seed-'+i})); persist(); }
+localTrusted = !!supplies;
+if (!supplies) { supplies = SEED.map((s,i) => ({...s, id:'seed-'+i})); if (!configOk()) persist(); }
 
 function persist() {
   localStorage.setItem(LS_DATA_KEY, JSON.stringify({_version:DATA_VERSION, data:supplies}));
