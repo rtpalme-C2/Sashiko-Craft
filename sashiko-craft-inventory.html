@@ -90,7 +90,7 @@
     background:var(--warn-bg); border:1.5px solid var(--warn-border); border-radius:4px;
     font-size:.8rem; line-height:1.6; color:var(--warn-text);
   }
-  .config-notice strong { display:block; margin-bottom:4px; font-size:.85rem; font-weight:500; }
+  .config-notice > strong:first-child { display:block; margin-bottom:4px; font-size:.85rem; font-weight:500; }
   .config-notice code {
     background:var(--warn-code); padding:1px 6px; border-radius:4px;
     font-family:monospace; font-size:.78rem;
@@ -140,7 +140,7 @@
   .search-wrap { position:relative; flex:1; min-width:180px; max-width:340px; }
   .search-wrap input {
     width:100%; padding:7px 12px 7px 34px;
-    border:1.5px solid var(--sky-thread); border-radius:20px;
+    border:1.5px solid var(--sky-thread); border-radius:8px;
     font-family:'Plus Jakarta Sans',sans-serif; font-size:.78rem; color:var(--ink);
     outline:none; transition:border-color .18s; background:var(--washi);
   }
@@ -710,7 +710,7 @@ function scheduleSave() {
   persist();
   if (!configOk()) return;
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(saveToGitHub, 1200);
+  saveTimer = setTimeout(() => { saveTimer = null; saveToGitHub(); }, 1200);
 }
 
 // ─────────────────────────────────────────────
