@@ -498,10 +498,7 @@
     <div class="field-row">
       <div class="field">
         <label>Use</label>
-        <select id="f-role">
-          <option value="Collection">Collection</option>
-          <option value="Project">Project</option>
-        </select>
+        <select id="f-use"></select>
       </div>
       <div class="field">
         <label>Swatch Color</label>
@@ -543,25 +540,22 @@ const LS_PAT      = 'sashiko_gh_pat';
 const LS_SHA      = 'sashiko_gh_sha';
 const LS_DATA_KEY = 'sashiko-v3';
 
-// ── Data version contract ─────────────────────────────────────────────────
-// DATA_VERSION guards against loading stale/incompatible localStorage data.
-// Rules:
-//   • Bump DATA_VERSION (e.g. 2→3) whenever the data schema changes in a
-//     way that makes old data incompatible (new required fields, renamed keys,
-//     structural changes to the payload shape).
-//   • Also update LS_DATA_KEY to match (e.g. 'sashiko-v3') so the old key
-//     is ignored rather than migrated (safest default).
-//   • If you need to migrate rather than discard, add a migration function
-//     before the `if (!supplies)` block below.
-//   • Minor additions (new optional fields) do NOT require a version bump —
-//     just use optional chaining (s?.newField) when reading.
+// ── Data version contract (DESIGN_SYSTEM.md sections 26 and 28) ────────────
+// DATA_VERSION says which schema a data file was written with. It is NEVER used
+// to discard data:
+//   • file version OLDER than the app  → migrate it forward, then save it back
+//   • file version EQUAL               → use it (still run migrations; they are idempotent)
+//   • file version NEWER than the app  → load read-only, never overwrite it
+//   • "no data" means only: file empty, or its data array is empty
+// Migrate per record, idempotently, gated on the old shape (see migrateItem).
+// Do NOT bump DATA_VERSION to migrate a field; keep old keys for one release.
 const DATA_VERSION = 3;
 
 let saveTimer   = null;
 let pendingSave = false;
 let remoteReady  = false;  // true once the remote file has been read (or confirmed missing/empty)
 let localTrusted = false;  // true when this device started with real cached data (not seed/empty)
-function pushAllowed() { return remoteReady || localTrusted; }
+function pushAllowed() { return !dataLocked && (remoteReady || localTrusted); }
 function localYMD() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
 
 // ── PAT helpers ──
@@ -631,14 +625,26 @@ async function syncFromGitHub() {
     if (text && text.trim().startsWith('{')) {
       const parsed = JSON.parse(text);
       remoteReady = true;
-      const hasData = parsed && parsed._version === DATA_VERSION &&
-        Array.isArray(parsed.data) && parsed.data.length > 0;
-      if (hasData) {
-        supplies = normalizeRoles(parsed.data);
+      const env = readEnvelope(parsed);
+      if (env.state === 'none') {
+        // A non-empty file we don't recognise is never overwritten.
+        dataLocked = true;
+        lockedNotice('data file format not recognised');
+        return;
+      }
+      if (env.data.length > 0) {
+        supplies = env.data;
+        if (env.state === 'newer') {
+          dataLocked = true;
+          renderGrid(); renderSummary();
+          lockedNotice('data file is from a newer app version');
+          return;
+        }
         persist();
         renderGrid(); renderSummary();
         setSyncStatus('connected', 'Synced from GitHub · ' + new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));
         await fetchSHA();
+        if (env.state === 'migrated') await saveToGitHub();   // write migrated data back
         return;
       }
     }
@@ -714,6 +720,7 @@ async function saveToGitHub() {
 }
 
 function scheduleSave() {
+  if (dataLocked) { lockedNotice('data file is from a newer app version'); return; }
   persist();
   if (!configOk()) return;
   if (!pushAllowed()) { setSyncStatus('error', 'Not synced yet — changes kept locally'); return; }
@@ -810,24 +817,69 @@ const SEED = [
   { cat:'Reference', name:'Kona Printed Color Chart 24\u201d Panel',   detail:'Full Kona palette reference',     maker:'Robert Kaufman', supplier:'Amazon', qty:'1 panel', status:'in-stock', note:'Delivered Mar 18' },
 ];
 
-let supplies = null;
-try {
-  const raw = JSON.parse(localStorage.getItem(LS_DATA_KEY) || 'null');
-  if (raw && raw._version === DATA_VERSION) supplies = normalizeRoles(raw.data);
-  else if (raw) localStorage.removeItem(LS_DATA_KEY);
-} catch(e) {}
-localTrusted = !!supplies;
-if (!supplies) { supplies = SEED.map((s,i) => ({...s, id:'seed-'+i})); if (!configOk()) persist(); }
+// ── Use field: stored as a stable ID; the label is display-only ──
+// To rename a label, change it here — no data migration needed.
+const USE_MAP = { collection:'Collection', project:'Project' };
+function useLabel(id) { return USE_MAP[id] || ''; }
+const LEGACY_USE_TOKENS = ['', 'stash', 'collection', 'project'];
 
-// Legacy saved data used the label 'Stash' for the Use field; it is now 'Collection'.
-// Converts on load so existing local/GitHub data keeps working without a DATA_VERSION bump.
-function normalizeRoles(arr) {
-  if (Array.isArray(arr)) arr.forEach(i => { if (i && i.role === 'Stash') i.role = 'Collection'; });
-  return arr;
+// ── Migrations (per record, idempotent, gated on the old shape) ──
+// 1. `use` ID derived from the legacy `role` label ('Stash' → 'collection').
+//    `role` is kept and mirrored to the label for one release (rollback safety);
+//    free-text roles (e.g. seed descriptions) are left untouched.
+function migrateItem(i) {
+  if (!i || typeof i !== 'object') return false;
+  let changed = false;
+  if (!USE_MAP[i.use]) {
+    const r = String(i.role || '').trim().toLowerCase();
+    i.use = (r === '' || r === 'stash' || r === 'collection') ? 'collection' : 'project';
+    changed = true;
+  }
+  const r = String(i.role || '').trim().toLowerCase();
+  if (LEGACY_USE_TOKENS.includes(r) && i.role !== useLabel(i.use)) { i.role = useLabel(i.use); changed = true; }
+  return changed;
+}
+function migrateData(arr) {
+  let changed = false;
+  arr.forEach(i => { if (migrateItem(i)) changed = true; });
+  return { data: arr, changed };
 }
 
+// Reads a {_version, data:[]} envelope from any source.
+// state: 'none' (unrecognised) | 'ok' | 'migrated' (older or changed by migration) | 'newer'
+function readEnvelope(raw) {
+  if (!raw || typeof raw !== 'object' || !Array.isArray(raw.data)) return { state:'none', data:null };
+  const v = Number(raw._version);
+  if (v > DATA_VERSION) return { state:'newer', data:raw.data };
+  const m = migrateData(raw.data);
+  return { state: (m.changed || v < DATA_VERSION) ? 'migrated' : 'ok', data:m.data };
+}
+
+let supplies = null;
+let dataLocked = false;   // true when the data file is newer than this app: read-only, never overwritten
+let migratedOnLoad = false;
+try {
+  const raw = JSON.parse(localStorage.getItem(LS_DATA_KEY) || 'null');
+  const env = readEnvelope(raw);
+  if (env.state !== 'none') {
+    supplies = env.data;
+    if (env.state === 'newer') dataLocked = true;
+    else if (env.state === 'migrated') migratedOnLoad = true;
+  }
+} catch(e) {}
+localTrusted = !!supplies;
+if (!supplies) { supplies = migrateData(SEED.map((s,i) => ({...s, id:'seed-'+i}))).data; if (!configOk()) persist(); }
+
 function persist() {
+  if (dataLocked) return;
   localStorage.setItem(LS_DATA_KEY, JSON.stringify({_version:DATA_VERSION, data:supplies}));
+}
+
+if (migratedOnLoad) persist();
+
+function lockedNotice(msg) {
+  setSyncStatus('error', 'Read-only — ' + msg);
+  showToast('Read-only: ' + msg + '. Reload with the latest app version.');
 }
 
 function resetLocalData() {
@@ -859,7 +911,7 @@ function matchesForm(s) {
 }
 function matchesUse(s) {
   if (activeUse === 'All') return true;
-  return (s.role || '') === activeUse;
+  return (s.use || '') === activeUse;
 }
 function matchesReorder(s) {
   if (activeReorder === 'All')        return true;
@@ -916,8 +968,7 @@ function renderFilters() {
       <span class="filter-label">Use</span>
       <select class="filter-select${useHasVal?' has-value':''}" onchange="setUse(this.value)">
         <option value="All"${activeUse==='All'?' selected':''}>All</option>
-        <option value="Project"${activeUse==='Project'?' selected':''}>Project</option>
-        <option value="Collection"${activeUse==='Collection'?' selected':''}>Collection</option>
+        ${Object.entries(USE_MAP).map(([id,l])=>`<option value="${id}"${activeUse===id?' selected':''}>${l}</option>`).join('')}
       </select>
     </div>` : ''}
     <div class="filter-group">
@@ -985,7 +1036,8 @@ function renderCard(s, d) {
       const color    = CAT_COLORS[s.cat]||'#4A6080';
       const st       = statusMap[s.status]||statusMap.pending;
       const swHtml   = s.swatch ? `<div class="swatch-row"><div class="swatch" style="background:${esc(s.swatch)}"></div></div>` : '';
-      const roleHtml = s.role && s.role !== 'Collection' ? `<div class="card-detail" style="margin-top:2px"><strong>Use:</strong> ${esc(s.role)}</div>` : '';
+      const useText  = s.role && !LEGACY_USE_TOKENS.includes(String(s.role).toLowerCase()) ? s.role : useLabel(s.use);
+      const roleHtml = s.use !== 'collection' && useText ? `<div class="card-detail" style="margin-top:2px"><strong>Use:</strong> ${esc(useText)}</div>` : '';
       const collHtml = s.collection ? `<div class="card-detail" style="margin-top:2px">${esc(s.collection)}</div>` : '';
       const codeHtml = s['fabric-code'] ? `<div class="card-detail" style="margin-top:1px"><strong>Code:</strong> ${esc(s['fabric-code'])}</div>` : '';
       const formHtml = s.form ? `<div class="card-detail" style="margin-top:1px"><strong>Form:</strong> ${esc(s.form)}</div>` : '';
@@ -1048,7 +1100,7 @@ function openModal(id) {
   document.getElementById('f-supplier').value     = s?.supplier     ||'';
   document.getElementById('f-qty').value          = s?.qty          ||'';
   document.getElementById('f-status').value       = s?.status       ||'in-stock';
-  document.getElementById('f-role').value         = s?.role         ||'Collection';
+  document.getElementById('f-use').value          = s?.use          ||'collection';
   document.getElementById('f-swatch').value       = s?.swatch       ||'';
   document.getElementById('f-notes').value        = s?.note         ||'';
   setReorderModal(s?.reorder || null);
@@ -1090,7 +1142,8 @@ function saveItem() {
     supplier:       document.getElementById('f-supplier').value.trim(),
     qty:            document.getElementById('f-qty').value.trim(),
     status:         document.getElementById('f-status').value,
-    role:           document.getElementById('f-role').value.trim(),
+    use:            document.getElementById('f-use').value,
+    role:           useLabel(document.getElementById('f-use').value),   // legacy key, mirrors the label
     swatch:         document.getElementById('f-swatch').value.trim(),
     note:           document.getElementById('f-notes').value.trim(),
     reorder:        reorderModalVal,
@@ -1148,12 +1201,14 @@ window.addEventListener('beforeunload', e=>{
 });
 
 // ── Init ──
+document.getElementById('f-use').innerHTML = Object.entries(USE_MAP).map(([id,l])=>`<option value="${id}">${l}</option>`).join('');
 updateSetupBanner();
 renderFilters();
 renderGrid();
 renderSummary();
 
 // Auto-sync on load if PAT is already set
+if (dataLocked) lockedNotice('data file is from a newer app version');
 if (configOk()) {
   syncFromGitHub();
 } else {
