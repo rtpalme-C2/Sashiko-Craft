@@ -145,6 +145,9 @@
     outline:none; transition:border-color .18s; background:var(--washi);
   }
   .search-wrap input:focus { border-color:var(--steel-blue); background:white; }
+  .search-wrap input { padding-right:30px; }
+  .search-clear { position:absolute; right:6px; top:50%; transform:translateY(-50%); width:22px; height:22px; border:none; border-radius:50%; background:transparent; color:var(--text-faint); font-size:1.1rem; line-height:1; cursor:pointer; padding:0; display:flex; align-items:center; justify-content:center; }
+  .search-clear:hover { background:var(--sky-thread); color:var(--steel-blue); }
   .search-wrap svg { position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--text-faint); pointer-events:none; }
   .btn-add-item {
     font-family:'Plus Jakarta Sans',sans-serif; font-size:.74rem; font-weight:500;
@@ -189,6 +192,37 @@
   }
   .filter-select:focus { outline:none; border-color:var(--steel-blue); }
   .filter-select.has-value { border-color:var(--ai-indigo); color:var(--ai-indigo); background-color:rgba(26,40,64,.06); }
+
+  /* ── Filters button / popover / chips (DESIGN_SYSTEM §8) ── */
+  .filters-wrap { position:relative; }
+  .filters-btn {
+    font-family:'Plus Jakarta Sans',sans-serif; font-size:.68rem; font-weight:500; letter-spacing:.04em;
+    color:var(--steel-blue); background:transparent; border:1.5px solid var(--sky-thread);
+    border-radius:20px; padding:4px 13px; cursor:pointer; white-space:nowrap; transition:border-color .15s;
+  }
+  .filters-btn:hover { border-color:var(--steel-blue); }
+  .filters-btn.has-value { border-color:var(--ai-indigo); color:var(--ai-indigo); background:rgba(26,40,64,.06); }
+  .filters-pop {
+    display:none; position:absolute; left:0; top:calc(100% + 8px); z-index:50;
+    width:min(270px,86vw); max-height:70vh; overflow-y:auto; background:white;
+    border:1px solid var(--sky-thread); border-radius:12px; padding:14px;
+    box-shadow:0 12px 32px rgba(20,40,70,.16); flex-direction:column; gap:12px;
+  }
+  .filters-pop.open { display:flex; }
+  .fr { display:flex; flex-direction:column; gap:5px; }
+  .fr label { font-size:.6rem; text-transform:uppercase; letter-spacing:.1em; color:var(--text-faint); }
+  .fr .filter-select { width:100%; }
+  .fr-clear {
+    align-self:flex-start; font-family:'Plus Jakarta Sans',sans-serif; font-size:.64rem; letter-spacing:.06em;
+    text-transform:uppercase; font-weight:500; background:none; border:none; color:var(--steel-blue); cursor:pointer; padding:2px 0;
+  }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; padding:12px 40px 0; }
+  .chip {
+    font-family:'Plus Jakarta Sans',sans-serif; font-size:.68rem; letter-spacing:.02em; background:white;
+    border:1px solid var(--ai-indigo); color:var(--ai-indigo); padding:4px 10px; border-radius:20px; cursor:pointer;
+  }
+  .chip:hover { background:rgba(26,40,64,.06); }
+  .results-note { padding:8px 40px 0; font-size:.68rem; color:var(--text-dim); letter-spacing:.02em; }
 
   /* ── Grid ── */
   .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:12px; padding:20px 40px 48px; }
@@ -250,7 +284,8 @@
   .reorder-btn.active[id="rbtn-yes"]  { background:rgba(90,171,122,.15); border-color:var(--ok); color:var(--ok-text); }
   .reorder-btn.active[id="rbtn-no"]   { background:rgba(176,80,80,.10);  border-color:var(--err); color:var(--err-text); }
   .reorder-btn.active[id="rbtn-null"] { background:var(--sky-thread); border-color:var(--thread-blue); color:var(--ai-indigo); }
-  .swatch-row { display:flex; gap:4px; margin-top:5px; }
+  .swatch-row { display:flex; gap:6px; margin-top:5px; align-items:center; }
+  .swatch-label { font-size:.68rem; color:var(--text-dim); line-height:1; }
   .swatch { width:13px; height:13px; border-radius:50%; border:1.5px solid rgba(0,0,0,.08); flex-shrink:0; }
   .section-label {
     grid-column:1/-1; font-family:'Plus Jakarta Sans',sans-serif; font-size:1.1rem; font-style:italic; font-weight:300;
@@ -311,6 +346,7 @@
     .sync-bar, .top-bar, .summary, .filters, .config-notice { padding-left:16px; padding-right:16px; }
     .filters { gap:10px; }
     .filter-divider { display:none; }
+    .chips, .results-note { padding-left:16px; padding-right:16px; }
     .grid { padding:16px; gap:12px; }
   }
   @media (max-width:480px) {
@@ -381,13 +417,16 @@
 <div class="top-bar">
   <div class="search-wrap">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-    <input type="text" id="search" placeholder="Search inventory…" oninput="renderGrid(); renderSummary();">
+    <input type="text" id="search" placeholder="Search inventory…" oninput="onSearchInput()">
+    <button class="search-clear" id="search-clear" type="button" aria-label="Clear search" title="Clear search" onclick="clearSearch()" style="display:none">×</button>
   </div>
   <button class="btn-add-item" onclick="openModal()">+ Add Item</button>
 </div>
 
 <div class="summary" id="summary"></div>
 <div class="filters"  id="filters"></div>
+<div class="chips" id="chips" style="display:none"></div>
+<div class="results-note" id="results-note" style="display:none"></div>
 <div class="grid"     id="grid"></div>
 
 <!-- PAT setup modal -->
@@ -502,8 +541,12 @@
       </div>
       <div class="field">
         <label>Swatch Color</label>
-        <input type="text" id="f-swatch" placeholder="#C08080">
+        <input type="text" id="f-swatch" placeholder="#C08080" onchange="suggestFamily()">
       </div>
+    </div>
+    <div class="field" id="color-family-field">
+      <label>Color Family</label>
+      <select id="f-color"></select>
     </div>
     <div class="field">
       <label>Notes</label>
@@ -655,12 +698,12 @@ async function syncFromGitHub() {
         supplies = env.data;
         if (env.state === 'newer') {
           dataLocked = true;
-          renderGrid(); renderSummary();
+          renderFilters(); renderGrid(); renderSummary();
           lockedNotice('data file is from a newer app version');
           return;
         }
         persist();
-        renderGrid(); renderSummary();
+        renderFilters(); renderGrid(); renderSummary();
         setSyncStatus('connected', 'Synced from GitHub · ' + new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));
         await fetchSHA();
         if (env.state === 'migrated') await saveToGitHub();   // write migrated data back
@@ -842,6 +885,50 @@ const USE_MAP = { collection:'Collection', project:'Project' };
 function useLabel(id) { return USE_MAP[id] || ''; }
 const LEGACY_USE_TOKENS = ['', 'stash', 'collection', 'project'];
 
+// ── Colour family (Fabric and Thread): stored as a stable ID in `colorFamily`; the label is display-only ──
+// Order here is the order of the dropdowns and of Sort > Color. Rename a label here without a migration.
+// `colorFamilyAuto: true` marks a family that was suggested from the swatch and not yet confirmed in the form.
+const COLOR_FAMILIES = [
+  ['red','Red'], ['orange','Orange'], ['yellow','Yellow'], ['green','Green'], ['blue','Blue'], ['purple','Purple'],
+  ['pink','Pink'], ['brown','Brown'], ['neutral','Neutral'], ['white','White'], ['gray','Gray'], ['black','Black'], ['multi','Multicolor']
+];
+const COLOR_MAP = Object.fromEntries(COLOR_FAMILIES);
+function colorLabel(id) { return COLOR_MAP[id] || ''; }
+function hasColorFamily(item) { return item && (item.cat === 'Fabric' || item.cat === 'Thread'); }
+// Suggest a colour family ID from a #RRGGBB swatch (heuristic; the user reviews and corrects).
+function familyFromSwatch(hex) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
+  if (!m) return '';
+  const n = parseInt(m[1], 16);
+  const r = (n >> 16 & 255) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
+  let h = 0, s = 0;
+  if (d) {
+    s = d / (1 - Math.abs(2 * l - 1));
+    if (mx === r) h = ((g - b) / d) % 6; else if (mx === g) h = (b - r) / d + 2; else h = (r - g) / d + 4;
+    h = (h * 60 + 360) % 360;
+  }
+  if (l < 0.17) return 'black';
+  if (l > 0.92 && s < 0.5) return 'white';
+  if (s < 0.12) return l > 0.82 ? 'white' : 'gray';
+  if (h >= 20 && h < 70 && d < 0.26 && l > 0.5) return 'neutral';          // cream, taupe, oyster, flax
+  if (h >= 45 && h < 70 && l < 0.5) return 'green';                           // olive
+  if (h >= 20 && h < 70 && s < 0.30) return l > 0.5 ? 'neutral' : 'brown';
+  if (h >= 330 && h < 345 && l < 0.35) return 'red';                         // burgundy, bordeaux
+  if (h >= 300 && l < 0.25) return 'purple';                                  // eggplant
+  if (h < 12 || h >= 345) return l > 0.60 ? 'pink' : 'red';
+  if (h < 42) {
+    if (l > 0.76) return 'pink';                                              // blush, shell, peach
+    return (l < 0.45 || s < 0.45) ? 'brown' : 'orange';
+  }
+  if (h < 60) return l >= 0.45 ? 'yellow' : 'green';                          // gold vs olive
+  if (h < 165) return 'green';
+  if (h < 240) return 'blue';
+  if (h < 252) return l > 0.6 ? 'purple' : 'blue';                            // lavender vs indigo
+  if (h < 300) return 'purple';
+  return 'pink';
+}
+
 // ── Migrations (per record, idempotent, gated on the old shape) ──
 // 1. `use` ID derived from the legacy `role` label ('Stash' → 'collection').
 //    `role` is kept and mirrored to the label for one release (rollback safety);
@@ -856,6 +943,12 @@ function migrateItem(i) {
   }
   const r = String(i.role || '').trim().toLowerCase();
   if (LEGACY_USE_TOKENS.includes(r) && i.role !== useLabel(i.use)) { i.role = useLabel(i.use); changed = true; }
+  // 2. Colour family suggested once from the swatch, only when the field has never been set (absent).
+  //    A cleared field is '' (not absent), so a deliberate blank is never refilled. Additive: no DATA_VERSION bump.
+  if (hasColorFamily(i) && i.colorFamily === undefined) {
+    const f = familyFromSwatch(i.swatch);
+    if (f) { i.colorFamily = f; i.colorFamilyAuto = true; changed = true; }
+  }
   return changed;
 }
 function migrateData(arr) {
@@ -916,6 +1009,7 @@ let activeStatus = 'all';
 let activeReorder = 'All';
 let activeForm   = 'All';
 let activeUse    = 'All';
+let activeColor  = 'All';
 let activeSort   = 'default';
 let editingId    = null;
 
@@ -932,6 +1026,13 @@ function matchesUse(s) {
   if (activeUse === 'All') return true;
   return (s.use || '') === activeUse;
 }
+function matchesColor(s) {
+  if (activeColor === 'All') return true;
+  if (!hasColorFamily(s)) return false;
+  if (activeColor === 'none')   return !s.colorFamily;
+  if (activeColor === 'review') return !!s.colorFamilyAuto;
+  return s.colorFamily === activeColor;
+}
 function matchesReorder(s) {
   if (activeReorder === 'All')        return true;
   if (activeReorder === 'yes')        return s.reorder === 'yes';
@@ -939,67 +1040,64 @@ function matchesReorder(s) {
   if (activeReorder === 'undecided')  return !s.reorder;
   return true;
 }
+function onSearchInput() {
+  const el = document.getElementById('search'), b = document.getElementById('search-clear');
+  if (b) b.style.display = el.value ? 'flex' : 'none';
+  renderGrid(); renderSummary();
+}
+function clearSearch() {
+  const el = document.getElementById('search'); el.value = ''; onSearchInput(); el.focus();
+}
+
 function matchesSearch(s) {
   const q = (document.getElementById('search').value||'').toLowerCase();
   if (!q) return true;
-  return [s.name,s.cat,s.detail,s.maker,s.supplier,s.role,s.note,s.qty,s.collection,s['fabric-code'],s.form].some(v=>v&&v.toLowerCase().includes(q));
+  return [s.name,s.cat,s.detail,s.maker,s.supplier,s.role,s.note,s.qty,s.collection,s['fabric-code'],s.form,colorLabel(s.colorFamily)].some(v=>v&&v.toLowerCase().includes(q));
 }
 
 function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+let filtersOpen = false;
+
 function renderFilters() {
   const statHasVal  = activeStatus  !== 'all';
-  const reordHasVal = activeReorder !== 'All';
-  const formHasVal  = activeForm    !== 'All';
-  const useHasVal   = activeUse     !== 'All';
+  const showColor   = activeCat === 'All' || activeCat === 'Fabric' || activeCat === 'Thread';
+  const colorPool   = supplies.filter(s=>hasColorFamily(s) && matchesCat(s));
+  const colorOpts   = COLOR_FAMILIES.filter(([id])=>colorPool.some(s=>s.colorFamily===id) || activeColor===id);
+  const nReview     = colorPool.filter(s=>s.colorFamilyAuto).length;
+  const nNone       = colorPool.filter(s=>!s.colorFamily).length;
   const isFabric    = activeCat === 'Fabric';
+  const nActive     = (activeStatus!=='all'?1:0) + (activeReorder!=='All'?1:0)
+                    + (isFabric && activeForm!=='All'?1:0) + (isFabric && activeUse!=='All'?1:0)
+                    + (showColor && activeColor!=='All'?1:0);
+  const sel = (id,label,body) => `<div class="fr"><label>${label}</label><select class="filter-select" id="${id}">${body}</select></div>`;
+  const opt = (v,l,cur) => `<option value="${v}"${cur===v?' selected':''}>${l}</option>`;
   document.getElementById('filters').innerHTML = `
     <div class="filter-group">
       <span class="filter-label">Category</span>
       ${CATS.map(c=>`<button class="filter-btn${c===activeCat?' active':''}" onclick="setCat('${c}')">${c}</button>`).join('')}
     </div>
     <div class="filter-divider"></div>
-    <div class="filter-group">
-      <span class="filter-label">Status</span>
-      <select class="filter-select${statHasVal?' has-value':''}" onchange="setStat(this.value)">
-        <option value="all"${activeStatus==='all'?' selected':''}>All</option>
-        <option value="in-stock"${activeStatus==='in-stock'?' selected':''}>In Stock</option>
-        <option value="on-order"${activeStatus==='on-order'?' selected':''}>On Order</option>
-        <option value="to-order"${activeStatus==='to-order'?' selected':''}>To Order</option>
-        <option value="depleted"${activeStatus==='depleted'?' selected':''}>Depleted</option>
-      </select>
+    <div class="filters-wrap">
+      <button class="filters-btn${nActive?' has-value':''}" id="filters-btn" type="button" onclick="toggleFilters(event)">${nActive?'Filters · '+nActive:'Filters'}</button>
+      <div class="filters-pop${filtersOpen?' open':''}" id="filters-pop" onclick="event.stopPropagation()">
+        ${sel('flt-status','Status',
+          opt('all','All',activeStatus)+opt('in-stock','In Stock',activeStatus)+opt('on-order','On Order',activeStatus)+opt('to-order','To Order',activeStatus)+opt('depleted','Depleted',activeStatus))}
+        ${isFabric ? sel('flt-form','Form',
+          opt('All','All',activeForm)+opt('Yardage','Yardage',activeForm)+opt('Fat Quarter','Fat Quarter',activeForm)+opt('Fat Eighth','Fat Eighth',activeForm)+opt('Panel','Panel',activeForm)+opt('Other','Other',activeForm)) : ''}
+        ${isFabric ? sel('flt-use','Use',
+          opt('All','All',activeUse)+Object.entries(USE_MAP).map(([id,l])=>opt(id,l,activeUse)).join('')) : ''}
+        ${showColor ? sel('flt-color','Color',
+          opt('All','All',activeColor)+colorOpts.map(([id,l])=>opt(id,l,activeColor)).join('')
+          +(nNone||activeColor==='none' ? opt('none',`Not set (${nNone})`,activeColor) : '')
+          +(nReview||activeColor==='review' ? opt('review',`Suggested, to review (${nReview})`,activeColor) : '')) : ''}
+        ${sel('flt-reorder','Rating',
+          opt('All','All',activeReorder)+opt('yes','★ Would Buy Again',activeReorder)+opt('no','✕ Would Not Buy Again',activeReorder)+opt('undecided','— Undecided',activeReorder))}
+        <button class="fr-clear" type="button" onclick="clearFilters()">Clear all</button>
+      </div>
     </div>
-    ${isFabric ? `
-    <div class="filter-group">
-      <span class="filter-label">Form</span>
-      <select class="filter-select${formHasVal?' has-value':''}" onchange="setForm(this.value)">
-        <option value="All"${activeForm==='All'?' selected':''}>All</option>
-        <option value="Yardage"${activeForm==='Yardage'?' selected':''}>Yardage</option>
-        <option value="Fat Quarter"${activeForm==='Fat Quarter'?' selected':''}>Fat Quarter</option>
-        <option value="Fat Eighth"${activeForm==='Fat Eighth'?' selected':''}>Fat Eighth</option>
-        <option value="Panel"${activeForm==='Panel'?' selected':''}>Panel</option>
-        <option value="Other"${activeForm==='Other'?' selected':''}>Other</option>
-      </select>
-    </div>
-    <div class="filter-group">
-      <span class="filter-label">Use</span>
-      <select class="filter-select${useHasVal?' has-value':''}" onchange="setUse(this.value)">
-        <option value="All"${activeUse==='All'?' selected':''}>All</option>
-        ${Object.entries(USE_MAP).map(([id,l])=>`<option value="${id}"${activeUse===id?' selected':''}>${l}</option>`).join('')}
-      </select>
-    </div>` : ''}
-    <div class="filter-group">
-      <span class="filter-label">Rating</span>
-      <select class="filter-select${reordHasVal?' has-value':''}" onchange="setReorder(this.value)">
-        <option value="All"${activeReorder==='All'?' selected':''}>All</option>
-        <option value="yes"${activeReorder==='yes'?' selected':''}>★ Would Buy Again</option>
-        <option value="no"${activeReorder==='no'?' selected':''}>✕ Would Not Buy Again</option>
-        <option value="undecided"${activeReorder==='undecided'?' selected':''}>— Undecided</option>
-      </select>
-    </div>
-    <div class="filter-divider"></div>
     <div class="filter-group">
       <span class="filter-label">Sort</span>
       <select class="filter-select${activeSort!=='default'?' has-value':''}" onchange="setSort(this.value)">
@@ -1007,20 +1105,73 @@ function renderFilters() {
         <option value="name"${activeSort==='name'?' selected':''}>Name</option>
         <option value="maker"${activeSort==='maker'?' selected':''}>Maker</option>
         <option value="status"${activeSort==='status'?' selected':''}>Status</option>
+        <option value="color"${activeSort==='color'?' selected':''}>Color</option>
       </select>
     </div>`;
+  const wire = (id,fn) => { const el=document.getElementById(id); if (el) el.onchange = () => fn(el.value); };
+  wire('flt-status',setStat); wire('flt-form',setForm); wire('flt-use',setUse); wire('flt-color',setColor); wire('flt-reorder',setReorder);
 }
 
-function setCat(c)      { activeCat=c; activeForm='All'; activeUse='All'; renderFilters(); renderGrid(); renderSummary(); }
+function toggleFilters(e) {
+  e.stopPropagation();
+  filtersOpen = !filtersOpen;
+  const pop = document.getElementById('filters-pop');
+  if (pop) pop.classList.toggle('open', filtersOpen);
+}
+function closeFilters() {
+  if (!filtersOpen) return;
+  filtersOpen = false;
+  const pop = document.getElementById('filters-pop');
+  if (pop) pop.classList.remove('open');
+}
+document.addEventListener('click', closeFilters);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeFilters(); });
+
+function clearFilters() {
+  activeStatus='all'; activeReorder='All'; activeForm='All'; activeUse='All'; activeColor='All';
+  refreshAll();
+}
+function removeFilter(key) {
+  if (key==='status') activeStatus='all';
+  if (key==='reorder') activeReorder='All';
+  if (key==='form') activeForm='All';
+  if (key==='use') activeUse='All';
+  if (key==='color') activeColor='All';
+  refreshAll();
+}
+function refreshAll() { renderFilters(); renderGrid(); renderSummary(); }
+
+function renderChips(shown, total) {
+  const box = document.getElementById('chips'), note = document.getElementById('results-note');
+  if (!box || !note) return;
+  const chips = [];
+  const add = (key,label) => chips.push(`<button class="chip" type="button" onclick="removeFilter('${key}')">${esc(label)} ×</button>`);
+  const isFabric = activeCat==='Fabric', showColor = activeCat==='All'||activeCat==='Fabric'||activeCat==='Thread';
+  const stL = {'in-stock':'In Stock','on-order':'On Order','to-order':'To Order','depleted':'Depleted'};
+  const reL = {yes:'Would Buy Again',no:'Would Not Buy Again',undecided:'Undecided'};
+  if (activeStatus!=='all') add('status', stL[activeStatus]||activeStatus);
+  if (isFabric && activeForm!=='All') add('form','Form: '+activeForm);
+  if (isFabric && activeUse!=='All') add('use','Use: '+useLabel(activeUse));
+  if (showColor && activeColor!=='All') add('color','Color: '+(activeColor==='none'?'Not set':activeColor==='review'?'Suggested, to review':colorLabel(activeColor)));
+  if (activeReorder!=='All') add('reorder', reL[activeReorder]||activeReorder);
+  box.innerHTML = chips.join('');
+  box.style.display = chips.length ? '' : 'none';
+  note.textContent = 'Showing '+shown+' of '+total;
+  note.style.display = chips.length ? '' : 'none';
+}
+
+function setCat(c)      { activeCat=c; activeForm='All'; activeUse='All'; activeColor='All'; renderFilters(); renderGrid(); renderSummary(); }
 function setStat(s)     { activeStatus=s;   renderFilters(); renderGrid(); renderSummary(); }
 function setReorder(r)  { activeReorder=r;  renderFilters(); renderGrid(); renderSummary(); }
 function setForm(f)     { activeForm=f;     renderFilters(); renderGrid(); renderSummary(); }
 function setUse(u)      { activeUse=u;      renderFilters(); renderGrid(); renderSummary(); }
+function setColor(c)    { activeColor=c;    renderFilters(); renderGrid(); renderSummary(); }
 function setSort(s)     { activeSort=s;     renderFilters(); renderGrid(); }
 
 function renderGrid() {
   const el = document.getElementById('grid');
-  let filtered = supplies.filter(s=>matchesCat(s)&&matchesStatus(s)&&matchesSearch(s)&&matchesReorder(s)&&matchesForm(s)&&matchesUse(s));
+  let filtered = supplies.filter(s=>matchesCat(s)&&matchesStatus(s)&&matchesSearch(s)&&matchesReorder(s)&&matchesForm(s)&&matchesUse(s)&&matchesColor(s));
+  renderChips(filtered.length, supplies.filter(matchesCat).length);
   if (!filtered.length) { el.innerHTML=`<div class="no-results">Nothing found.</div>`; return; }
 
   const statusOrder = {'in-stock':0,'on-order':1,'to-order':2,'depleted':3};
@@ -1030,6 +1181,9 @@ function renderGrid() {
     filtered.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
   } else if (activeSort === 'maker') {
     filtered.sort((a,b)=>(a.maker||'').localeCompare(b.maker||'') || (a.name||'').localeCompare(b.name||''));
+  } else if (activeSort === 'color') {
+    const order = Object.fromEntries(COLOR_FAMILIES.map(([id],ix)=>[id,ix]));
+    filtered.sort((a,b)=>(order[a.colorFamily]??99)-(order[b.colorFamily]??99) || (a.name||'').localeCompare(b.name||''));
   } else if (activeSort === 'status') {
     filtered.sort((a,b)=>(statusOrder[a.status]??9)-(statusOrder[b.status]??9) || (a.name||'').localeCompare(b.name||''));
   }
@@ -1054,7 +1208,8 @@ function renderGrid() {
 function renderCard(s, d) {
       const color    = CAT_COLORS[s.cat]||'#4A6080';
       const st       = statusMap[s.status]||statusMap.pending;
-      const swHtml   = s.swatch ? `<div class="swatch-row"><div class="swatch" style="background:${esc(s.swatch)}"></div></div>` : '';
+      const famText  = hasColorFamily(s) ? colorLabel(s.colorFamily) : '';
+      const swHtml   = (s.swatch || famText) ? `<div class="swatch-row">${s.swatch ? `<div class="swatch" style="background:${esc(s.swatch)}"></div>` : ''}${famText ? `<span class="swatch-label">${esc(famText)}</span>` : ''}</div>` : '';
       const useText  = s.role && !LEGACY_USE_TOKENS.includes(String(s.role).toLowerCase()) ? s.role : useLabel(s.use);
       const roleHtml = s.use !== 'collection' && useText ? `<div class="card-detail" style="margin-top:2px"><strong>Use:</strong> ${esc(useText)}</div>` : '';
       const collHtml = s.collection ? `<div class="card-detail" style="margin-top:2px">${esc(s.collection)}</div>` : '';
@@ -1121,6 +1276,8 @@ function openModal(id) {
   document.getElementById('f-status').value       = s?.status       ||'in-stock';
   document.getElementById('f-use').value          = s?.use          ||'collection';
   document.getElementById('f-swatch').value       = s?.swatch       ||'';
+  document.getElementById('f-color').innerHTML    = '<option value="">— Not set</option>' + COLOR_FAMILIES.map(([id,l])=>`<option value="${id}">${l}</option>`).join('');
+  document.getElementById('f-color').value        = s?.colorFamily  ||'';
   document.getElementById('f-notes').value        = s?.note         ||'';
   setReorderModal(s?.reorder || null);
   toggleFabricFields(s?.cat||'Fabric');
@@ -1130,6 +1287,13 @@ function openModal(id) {
 
 function toggleFabricFields(cat) {
   document.getElementById('fabric-fields').style.display = cat === 'Fabric' ? '' : 'none';
+  document.getElementById('color-family-field').style.display = (cat === 'Fabric' || cat === 'Thread') ? '' : 'none';
+}
+
+// When a swatch is typed and no family is chosen yet, offer the matching family (the user can change it).
+function suggestFamily() {
+  const sel = document.getElementById('f-color');
+  if (sel && !sel.value) sel.value = familyFromSwatch(document.getElementById('f-swatch').value) || '';
 }
 
 function closeModal() { document.getElementById('modal').classList.remove('open'); editingId=null; }
@@ -1167,9 +1331,12 @@ function saveItem() {
     note:           document.getElementById('f-notes').value.trim(),
     reorder:        reorderModalVal,
   };
+  // Colour family: kept for Fabric and Thread only. Saving through the form confirms it (clears the suggestion flag).
+  if (cat === 'Fabric' || cat === 'Thread') item.colorFamily = document.getElementById('f-color').value;
   supplies = editingId ? supplies.map(s=>s.id===editingId?item:s) : [item,...supplies];
   scheduleSave();
   closeModal();
+  renderFilters();
   renderGrid();
   renderSummary();
 }
@@ -1178,6 +1345,7 @@ function deleteItem(id) {
   if (!confirm('Remove this item?')) return;
   supplies = supplies.filter(s=>s.id!==id);
   scheduleSave();
+  renderFilters();
   renderGrid();
   renderSummary();
 }
