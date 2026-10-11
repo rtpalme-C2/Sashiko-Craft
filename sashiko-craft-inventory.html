@@ -1140,13 +1140,23 @@ function updateSheetApply() {
   if (el) el.textContent = `Show ${n} item${n === 1 ? '' : 's'}`;
 }
 
-function openFilterSheet() {
+function openFilterSheet(mode) {
   buildSheet(); updateFilterBadge();
-  document.getElementById('filter-backdrop').hidden = false;
+  var bd = document.getElementById('filter-backdrop');
+  bd.hidden = false;
+  bd.classList.add('open');
   document.body.style.overflow = 'hidden';
+  var title = document.querySelector('#filter-backdrop .sh-head b');
+  if (title) title.textContent = (mode === 'sort') ? 'Sort by' : 'Filters';
+  if (mode === 'sort') {
+    setTimeout(function() {
+      var sortSec = document.getElementById('sheet-sort-sec');
+      if (sortSec) sortSec.scrollIntoView({behavior:'smooth', block:'start'});
+    }, 50);
+  }
 }
 function closeFilterSheet() {
-  document.getElementById('filter-backdrop').hidden = true;
+  var bd = document.getElementById('filter-backdrop'); bd.hidden = true; bd.classList.remove('open');
   document.body.style.overflow = '';
 }
 
